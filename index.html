@@ -1,0 +1,23 @@
+<script>
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    const flows = RED.nodes.export();
+    const content = btoa(JSON.stringify(flows, null, 2));
+    
+    fetch('https://api.github.com/repos/ngemiel/nodered-editor/contents/flows.json', {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'token YOUR_GITHUB_TOKEN',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'Auto-save from editor',
+        content: content,
+        sha: CURRENT_SHA // ganti via GET dulu
+      })
+    })
+    .then(() => alert('Flow tersimpan otomatis!'));
+  }
+});
+</script>
