@@ -71,7 +71,7 @@
 
       const loadFlow = () => location.reload();
 
-      // BARU: Export ke JSON Node-RED
+      // Export ke JSON Node-RED
       window.exportFlow = () => {
         const flow = nodes.map(n => ({
           id: n.id,
@@ -92,7 +92,7 @@
         alert('Export berhasil! File: flow-ngemiel.json');
       };
 
-      // BARU: Import JSON
+      // Import JSON
       window.importFlow = (event) => {
         const file = event.target.files[0];
         if (!file) return;
