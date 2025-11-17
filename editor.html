@@ -5,34 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Node-RED Web Editor @ngemiel</title>
   <style>
-    body { margin:0; font-family:Arial; background:#f0f0f0; }
-    #toolbar { padding:15px; background:#d32f2f; color:white; text-align:center; }
-    button { padding:10px 20px; margin:5px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; background:white; color:#d32f2f; }
+    body { margin:0; font-family:-apple-system,system-ui,Arial,sans-serif; background:#f0f0f0; }
+    #toolbar { padding:12px; background:#d32f2f; color:white; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.2); }
+    button { padding:8px 16px; margin:4px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; background:white; color:#d32f2f; font-size:14px; }
     button:hover { background:#ffebee; }
     #exportBtn { background:#4caf50; color:white; }
-    #canvas { height:80vh; position:relative; background:white; }
-    .node { position:absolute; width:140px; height:70px; background:#87CEFA; border:3px solid #000; border-radius:12px; text-align:center; line-height:70px; cursor:move; user-select:none; box-shadow:0 6px 15px rgba(0,0,0,0.2); font-weight:bold; }
-    .node.input { background:#90EE90; }
-    .node.output { background:#FFB6C1; }
-    .port { width:16px; height:16px; background:#000; border-radius:50%; position:absolute; top:50%; transform:translateY(-50%); cursor:crosshair; }
-    .port.in { left:-8px; }
-    .port.out { right:-8px; }
+    #canvas { height:80vh; position:relative; background:#fdfdfd; }
+    .node { 
+      position:absolute; width:100px; height:50px; 
+      background:#87CEFA; border:2px solid #000; border-radius:8px; 
+      text-align:center; line-height:50px; cursor:move; user-select:none; 
+      box-shadow:0 3px 8px rgba(0,0,0,0.15); font-weight:bold; font-size:13px; color:#000;
+      transition:transform 0.1s;
+    }
+    .node:hover { transform:scale(1.05); }
+    .node.input { background:#A8E6A1; border-color:#2e7d32; }
+    .node.function { background:#B3E5FC; border-color:#01579b; }
+    .node.output { background:#FFAB91; border-color:#d84315; }
+    .port { width:12px; height:12px; background:#000; border-radius:50%; position:absolute; top:50%; transform:translateY(-50%); cursor:crosshair; }
+    .port.in { left:-6px; }
+    .port.out { right:-6px; }
     svg.connections { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
-    svg.connections path { fill:none; stroke:#000; stroke-width:4; }
-    #contextMenu { position:absolute; background:white; border:2px solid #d32f2f; border-radius:8px; padding:10px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:9999; display:none; }
-    #contextMenu button { background:#d32f2f; color:white; width:100%; margin:5px 0; }
-    a { color:white; text-decoration:underline; margin-left:20px; }
+    svg.connections path { fill:none; stroke:#000; stroke-width:3; }
+    #contextMenu { position:absolute; background:white; border:2px solid #d32f2f; border-radius:8px; padding:8px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:9999; display:none; font-size:14px; }
+    #contextMenu button { background:#d32f2f; color:white; width:100%; margin:4px 0; padding:8px; }
+    a { color:white; text-decoration:underline; margin-left:15px; font-size:14px; }
   </style>
 </head>
 <body>
   <div id="toolbar">
-    <h2>Node-RED Web Editor @ngemiel</h2>
+    <h2 style="margin:0; font-size:18px;">Node-RED Web Editor @ngemiel</h2>
     <button onclick="addNode('input')">+ Inject</button>
     <button onclick="addNode('function')">+ Function</button>
     <button onclick="addNode('output')">+ Debug</button>
     <button onclick="saveFlow()">Simpan</button>
     <button onclick="loadFlow()">Muat</button>
-    <button id="exportBtn" onclick="exportFlow()">Export JSON</button>
+    <button id="exportBtn" onclick="exportFlow()">Export</button>
     <a href="/">← JSON Editor</a>
   </div>
   <div id="canvas">
@@ -57,7 +65,7 @@
       nodes.push({
         id: 'n'+Date.now(),
         type,
-        x: 150 + Math.random()*400,
+        x: 150 + Math.random()*500,
         y: 100 + Math.random()*300,
         label: type==='input'?'Inject':type==='output'?'Debug':'Function'
       });
@@ -71,10 +79,10 @@
         const src = nodes.find(n=>n.id===edge.source);
         const dst = nodes.find(n=>n.id===edge.target);
         if (!src || !dst) return;
-        const x1 = src.x + 148;
-        const y1 = src.y + 35;
-        const x2 = dst.x - 8;
-        const y2 = dst.y + 35;
+        const x1 = src.x + 106;
+        const y1 = src.y + 25;
+        const x2 = dst.x - 6;
+        const y2 = dst.y + 25;
         const curve = Math.abs(x2-x1)*0.5;
         const path = document.createElementNS('http://www.w3.org/2000/svg','path');
         path.setAttribute('d',`M${x1},${y1} C${x1+curve},${y1} ${x2-curve},${y2} ${x2},${y2}`);
@@ -83,7 +91,6 @@
     }
 
     function renderNodes() {
-      // Hapus node lama
       document.querySelectorAll('.node').forEach(n=>n.remove());
       nodes.forEach(node => {
         const div = document.createElement('div');
@@ -100,7 +107,6 @@
         div.appendChild(portIn);
         div.appendChild(portOut);
 
-        // Klik kanan = delete
         div.addEventListener('contextmenu', e=>{
           e.preventDefault();
           currentNodeId = node.id;
@@ -109,19 +115,16 @@
           contextMenu.style.display = 'block';
         });
 
-        // Drag node
         div.addEventListener('mousedown', e=>{
           if (e.button!==0 || e.target.classList.contains('port')) return;
           dragging = {node, offsetX:e.clientX-node.x, offsetY:e.clientY-node.y};
         });
 
-        // Mulai koneksi
         portOut.addEventListener('mousedown', e=>{
           e.stopPropagation();
           connecting = {source: node.id};
         });
 
-        // Akhiri koneksi
         portIn.addEventListener('mouseup', e=>{
           if (connecting && connecting.source !== node.id) {
             edges = edges.filter(e=>!(e.source===connecting.source && e.target===node.id));
@@ -160,8 +163,6 @@
       saveFlow();
     }
 
-    function hideContextMenu(){ contextMenu.style.display='none'; }
-
     function saveFlow(){
       localStorage.setItem('nodes',JSON.stringify(nodes));
       localStorage.setItem('edges',JSON.stringify(edges));
@@ -183,7 +184,7 @@
       a.click();
     }
 
-    render(); // Mulai
+    render();
   </script>
 </body>
 </html>
