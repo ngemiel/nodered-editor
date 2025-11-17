@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeRED Editor @ngemiel</title>
+  <style>
+    body { font-family: Arial; margin: 20px; background: #f9f9f9; }
+    h1 { color: #d32f2f; text-align: center; }
+    #editor { width: 100%; height: 500px; border: 2px solid #d32f2f; background: white; padding: 15px; font-family: monospace; font-size: 14px; overflow: auto; }
+    button { margin: 10px 5px; padding: 10px 20px; background: #d32f2f; color: white; border: none; cursor: pointer; }
+    button:hover { background: #b71c1c; }
+    a { display: block; margin-top: 20px; text-align: center; color: #d32f2f; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Custom Node-RED Editor (JSON Mode) - @ngemiel</h1>
+  <p style="text-align: center;">Edit flow JSON di bawah. Otomatis tersimpan di browser!</p>
+  <div id="editor" contenteditable="true">[]</div>
+  <div style="text-align: center;">
+    <button onclick="alert('Flow tersimpan!')">💾 Simpan</button>
+    <button onclick="document.getElementById('editor').innerText='[]'; localStorage.removeItem('flow'); alert('Reset!')">🔄 Reset</button>
+  </div>
+  <a href="/editor.html">→ Buka Drag & Drop Editor</a>
+
+  <script>
+    const editor = document.getElementById('editor');
+    editor.innerText = localStorage.getItem('flow') || '[\n  {\n    "id": "1",\n    "type": "inject",\n    "name": "Contoh Input Node"\n  },\n  {\n    "id": "2",\n    "type": "function",\n    "name": "Proses Data"\n  }\n]';
+    editor.addEventListener('input', () => {
+      localStorage.setItem('flow', editor.innerText);
+    });
+  </script>
+</body>
+</html>
