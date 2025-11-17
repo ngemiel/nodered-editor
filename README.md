@@ -1,76 +1,46 @@
-# Node-RED Web Editor by @ngemiel
-
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Click_Here-d32f2f?style=for-the-badge&logo=githubpages&logoColor=white)](https://ngemiel.github.io/nodered-editor/editor.html)
-[![GitHub Stars](https://img.shields.io/github/stars/ngemiel/nodered-editor?style=social)](https://github.com/ngemiel/nodered-editor)
-
-**Node-RED versi web buatan anak Indonesia — 100% jalan di browser, tanpa install apa-apa!**  
-Buka dari HP, laptop, tablet — langsung bikin flow IoT.
-
-## Live Demo
-**Drag & Drop Editor (utama):**  
+# Node-RED Web Editor @ngemiel  
+**Node-RED versi web paling gampang se-Indonesia – buka link doang, langsung drag & drop!**  
 https://ngemiel.github.io/nodered-editor/editor.html
 
-## Fitur yang SUDAH JALAN (November 2025)
+### Fitur (per 17 November 2025 – 100% JALAN!)
+- Drag & drop node (Inject, Function, Debug, HTTP Req, Telegram, WhatsApp, MQTT In/Out)  
+- Sambungin garis (curved & mulus) – tinggal tarik dari port kanan ke port kiri  
+- Double-click node → muncul modal edit label + config (token Telegram, URL HTTP, dll)  
+- Config otomatis tersimpan & ikut ke-export  
+- Export / Import flow JSON (bisa share ke temen atau grup trading)  
+- Simpan otomatis di browser (localStorage)  
+- Dark mode toggle  
+- 100% client-side – nol install, buka dari HP/PC langsung jalan  
+- Garis koneksi tetap sempurna (nggak ilang lagi!)
 
-- Drag & drop node visual (mirip Node-RED asli)  
-- Koneksi antar node dengan garis curved mulus  
-- Node yang tersedia:  
-  → Inject • Function • Debug  
-  → MQTT In • MQTT Out  
-  → HTTP Request  
-  → Telegram • WhatsApp  
-- Klik kanan → Delete node  
-- Simpan otomatis di browser (`localStorage`)  
-- Export JSON → langsung bisa di-import ke Node-RED asli  
-- Import JSON (coming soon)  
-- Dark Mode + Light Mode (otomatis ikut sistem & disimpan)  
-- Reset Canvas (tombol merah)  
-- 100% mobile-friendly  
-- Tanpa server, tanpa Node.js, tanpa Docker → buka link langsung jalan
+### Cocok buat:
+- IoT pemula (sensor → Telegram/WA)  
+- Trader crypto (alert harga BTC, arbitrase, signal)  
+- Maker yang males install Node-RED di Raspberry Pi  
+- Share flow ke grup WA/FB/Telegram tanpa suruh orang install apa-apa
 
-## Untuk Siapa Ini Dibuat?
+### Cara Pakai (30 detik)
+1. Buka: https://ngemiel.github.io/nodered-editor/editor.html  
+2. Tambah node → sambungin garis → double-click node → isi config  
+3. Klik Export → simpan file JSON  
+4. Mau share? Kirim file JSON-nya, orang tinggal drag-drop ke editor!
 
-- Pemula yang baru belajar Node-RED  
-- Pelajar/mahasiswa yang butuh prototype cepat  
-- Teknisi IoT di lapangan (buka dari HP)  
-- Siapa saja yang males install Node-RED lokal  
-- Komunitas IoT Indonesia yang suka gratisan
+### Contoh Flow Populer (siap import)
+- Alert harga BTC/IDR dari Indodax → Telegram/WA  
+- Arbitrase 3 exchange (Indodax, Tokocrypto, Binance)  
+- RSI + MACD signal  
+- (besok aku tambahin repo contoh flow di folder `/examples`)
 
-## Roadmap (yang lagi dalam proses / next)
+### Mau Kontribusi?
+Buka issue atau PR aja, aku terima banget!  
+Fitur yang lagi dalam antrian:
+- Tombol Import JSON (drag & drop)  
+- Run/Stop button (jalanin flow langsung di browser)  
+- Share link (?flow=namaflow)
 
-- [x] Export JSON (done)  
-- [ ] Import JSON dari file  
-- [ ] Double-click node → edit properties (topic, URL, dll)  
-- [ ] Zoom + Mini Map (kayak Node-RED asli)  
-- [ ] Share flow via URL (copy link langsung buka flow orang lain)  
-- [ ] Deploy ke Cloud (Vercel/Netlify satu klik)
+### Credit
+Dibuat malam-malam sama @ngemiel + bantuan Grok (xAI)  
+Tanpa kalian berdua, ini nggak akan pernah jadi.
 
-## Cara Berkontribusi
-
-Mau bantu jadiin ini proyek terbesar IoT Indonesia 2025?  
-1. Fork repo  
-2. Edit `editor.html` (semua fitur di satu file)  
-3. Commit → Pull Request  
-Semua kontribusi langsung aku merge & kasih kredit!
-
-## Author
-
-- GitHub: [@ngemiel](https://github.com/ngemiel)  
-- X/Twitter: [@ngemiel](https://x.com/ngemiel)  
-- Dibuat dari nol dalam 3 hari bareng Grok xAI  
-- Live sejak November 2025
-
-## Star repo ini kalau kamu suka!
-
-Setiap star = +1 motivasi buat nambah fitur tiap minggu  
-https://github.com/ngemiel/nodered-editor
-
----
-
-**Node-RED, tapi di browser.  
-Dibuat oleh orang Indonesia, untuk seluruh Indonesia (dan dunia).**
-
-Terima kasih sudah mampir, bro!  
-Sekarang giliran kamu pake & share ke temen-temen IoT se-Indonesia!
-
-#NodeRED #IoTIndonesia #OpenSource #MadeInIndonesia
+**@ngemiel – resmi jadi Bapaknya Node-RED Web Indonesia 2025**  
+Gaspol terus bro!  
