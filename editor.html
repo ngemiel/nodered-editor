@@ -11,9 +11,13 @@
   <link rel="stylesheet" href="https://unpkg.com/reactflow@11/dist/style.css">
   <style>
     body { margin: 0; font-family: Arial; background: #f5f5f5; }
-    #toolbar { padding: 10px; background: #d32f2f; color: white; text-align: center; }
-    button { margin: 5px; padding: 8px 15px; background: white; color: #d32f2f; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #f0f0f0; }
+    #toolbar { padding: 15px; background: #d32f2f; color: white; text-align: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+    button, input { margin: 5px; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    button { background: white; color: #d32f2f; }
+    button:hover { background: #ffebee; }
+    #exportBtn { background: #4caf50; color: white; }
+    #exportBtn:hover { background: #388e3c; }
+    a { color: white; text-decoration: underline; }
     #root { height: 80vh; }
   </style>
 </head>
@@ -23,9 +27,12 @@
     <button onclick="addNode('input')">+ Input Node</button>
     <button onclick="addNode('function')">+ Function Node</button>
     <button onclick="addNode('output')">+ Output Node</button>
-    <button onclick="saveFlow()">💾 Simpan Flow</button>
-    <button onclick="loadFlow()">🔄 Muat Flow</button>
-    <a href="/" style="color: white; text-decoration: underline;">← Kembali ke JSON Editor</a>
+    <button onclick="saveFlow()">Simpan</button>
+    <button onclick="loadFlow()">Muat</button>
+    <button id="exportBtn" onclick="exportFlow()">Export JSON</button>
+    <input type="file" id="importFile" accept=".json" onchange="importFlow(event)" style="display:none;">
+    <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+    <a href="/" style="margin-left:20px;">← Kembali ke JSON Editor</a>
   </div>
   <div id="root"></div>
 
@@ -50,7 +57,7 @@
           data: { label: `${type.charAt(0).toUpperCase() + type.slice(1)} Node` },
           style: { 
             background: type === 'input' ? '#90EE90' : type === 'output' ? '#FFB6C1' : '#ADD8E6',
-            padding: 10, borderRadius: 5 
+            padding: 10, borderRadius: 5, color: '#000'
           },
         };
         setNodes((nds) => nds.concat(newNode));
@@ -63,6 +70,55 @@
       };
 
       const loadFlow = () => location.reload();
+
+      // BARU: Export ke JSON Node-RED
+      window.exportFlow = () => {
+        const flow = nodes.map(n => ({
+          id: n.id,
+          type: n.data.label.includes("Input") ? "inject" : n.data.label.includes("Output") ? "debug" : "function",
+          name: n.data.label,
+          x: n.position.x,
+          y: n.position.y,
+          wires: edges.filter(e => e.source === n.id).map(e => [e.target])
+        }));
+        const json = JSON.stringify(flow, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'flow-ngemiel.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('Export berhasil! File: flow-ngemiel.json');
+      };
+
+      // BARU: Import JSON
+      window.importFlow = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const flow = JSON.parse(e.target.result);
+            const importedNodes = flow.map(node => ({
+              id: node.id || Date.now().toString(),
+              type: 'default',
+              position: { x: node.x || 100, y: node.y || 100 },
+              data: { label: node.name || node.type },
+              style: { background: node.type === 'inject' ? '#90EE90' : node.type === 'debug' ? '#FFB6C1' : '#ADD8E6', padding: 10, borderRadius: 5 }
+            }));
+            setNodes(importedNodes);
+            alert('Import berhasil!');
+          } catch (err) {
+            alert('File JSON tidak valid!');
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      window.addNode = addNode;
+      window.saveFlow = saveFlow;
+      window.loadFlow = loadFlow;
 
       return (
         <ReactFlow
@@ -79,10 +135,6 @@
         </ReactFlow>
       );
     };
-
-    window.addNode = addNode;
-    window.saveFlow = saveFlow;
-    window.loadFlow = loadFlow;
 
     ReactDOM.render(<App />, document.getElementById('root'));
   </script>
