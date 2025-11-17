@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,14 +37,9 @@
     svg.connections path{stroke:#000;stroke-width:3;transition:all .3s}
     .dark svg.connections path{stroke:#888}
     #themeBtn{position:absolute;right:15px;top:12px;background:#333;color:white;padding:8px 12px;font-size:20px;border-radius:50%;cursor:pointer}
-    #editModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:10000;align-items:center;justify-content:center}
-    .modal-content{background:white;padding:25px;border-radius:12px;width:340px;box-shadow:0 10px 30px rgba(0,0,0,0.4);color:#000}
-    .dark .modal-content{background:#333;color:#eee}
-    .modal-content input,.modal-content textarea{width:100%;margin:10px 0;padding:10px;border-radius:6px;border:1px solid #ccc;font-family:monospace}
-    .dark .modal-content input{border-color:#555}
-    .modal-content button{padding:10px;background:#d32f2f;color:white;border:none;border-radius:6px;cursor:pointer;width:100%;margin:5px 0}
     #contextMenu{position:absolute;background:white;border:2px solid #d32f2f;border-radius:8px;padding:8px;box-shadow:0 4px 15px rgba(0,0,0,.3);z-index:9999;display:none}
     .dark #contextMenu{background:#222;border-color:#d32f2f}
+    .dark #contextMenu button{background:#d32f2f;color:white}
     a{color:white;text-decoration:underline;font-size:14px}
   </style>
 </head>
@@ -72,30 +66,22 @@
     <button onclick="deleteNode(currentNodeId)">Delete Node</button>
     <button onclick="hideContextMenu()">Cancel</button>
   </div>
-  <div id="editModal">
-    <div class="modal-content">
-      <h3>Edit Node</h3>
-      <input id="nodeLabel" placeholder="Label">
-      <textarea id="nodeConfig" rows="8" placeholder='Telegram:\n{"token":"123456:ABC","chatId":"123456789"}\n\nHTTP:\n{"url":"https://indodax.com/api/ticker/btcidr"}'></textarea>
-      <button onclick="saveNodeConfig()">Save</button>
-      <button onclick="closeEditModal()">Cancel</button>
-    </div>
-  </div>
 
   <script>
     let nodes=JSON.parse(localStorage.getItem('nodes')||'[]');
     let edges=JSON.parse(localStorage.getItem('edges')||'[]');
-    let dragging=null,connecting=null,currentNodeId=null,editingNode=null;
+    let dragging=null,connecting=null,currentNodeId=null;
     const canvas=document.getElementById('canvas');
     const svg=document.querySelector('svg.connections');
-    const contextMenu=document.getElementById('contextMenu');
-    const editModal=document.getElementById('editModal');
+    const ctx=document.getElementById('contextMenu');
     const themeBtn=document.getElementById('themeBtn');
 
-    // Dark Mode
+    // Load tema dari localStorage
     if(localStorage.getItem('theme')==='dark'||(!localStorage.getItem('theme')&&window.matchMedia('(prefers-color-scheme: dark)').matches)){
-      document.body.classList.add('dark'); themeBtn.textContent='Light Mode';
+      document.body.classList.add('dark');
+      themeBtn.textContent='Light Mode';
     }
+
     function toggleTheme(){
       document.body.classList.toggle('dark');
       const isDark=document.body.classList.contains('dark');
@@ -105,10 +91,7 @@
 
     const labels={input:'Inject',function:'Function',output:'Debug','mqtt-in':'MQTT In','mqtt-out':'MQTT Out',http:'HTTP Req',telegram:'Telegram',whatsapp:'WhatsApp'};
 
-    function addNode(t){
-      nodes.push({id:'n'+Date.now(),type:t,x:150+Math.random()*600,y:100+Math.random()*300,label:labels[t],config:{}});
-      render(); saveFlow();
-    }
+    function addNode(t){nodes.push({id:'n'+Date.now(),type:t,x:150+Math.random()*600,y:100+Math.random()*300,label:labels[t]});render();saveFlow();}
 
     function drawConnections(){
       svg.innerHTML='';
@@ -128,29 +111,13 @@
       document.querySelectorAll('.node').forEach(n=>n.remove());
       nodes.forEach(n=>{
         const div=document.createElement('div');
-        div.className=`node ${n.type}`; div.id=n.id; div.innerText=n.label;
-        div.style.left=n.x+'px'; div.style.top=n.y+'px';
-
-        // Double-click untuk edit
-        div.addEventListener('dblclick', ()=>{editingNode=n; document.getElementById('nodeLabel').value=n.label; document.getElementById('nodeConfig').value=JSON.stringify(n.config||{},null,2); editModal.style.display='flex';});
-
-        // Port In & Out (buat dulu, baru event)
-        const portIn=document.createElement('div'); portIn.className='port in';
-        const portOut=document.createElement('div'); portOut.className='port out';
-        div.appendChild(portIn); div.appendChild(portOut);
-
-        // Event koneksi (setelah port dibuat)
-        portOut.addEventListener('mousedown',e=>{e.stopPropagation(); connecting={source:n.id};});
-        portIn.addEventListener('mouseup',e=>{
-          if(connecting && connecting.source!==n.id){
-            edges=edges.filter(x=>!(x.source===connecting.source && x.target===n.id));
-            edges.push({source:connecting.source, target:n.id});
-            connecting=null; render(); saveFlow();
-          }
-        });
-
-        div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;contextMenu.style.left=e.clientX+'px';contextMenu.style.top=e.clientY+'px';contextMenu.style.display='block';});
+        div.className=`node ${n.type}`;div.id=n.id;div.innerText=n.label;
+        div.style.left=n.x+'px';div.style.top=n.y+'px';
+        ['in','out'].forEach(p=>{const port=document.createElement('div');port.className=`port ${p}`;div.appendChild(port);});
+        div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;ctx.style.left=e.clientX+'px';ctx.style.top=e.clientY+'px';ctx.style.display='block';});
         div.addEventListener('mousedown',e=>{if(e.button!==0||e.target.classList.contains('port'))return;dragging={node:n,offsetX:e.clientX-n.x,offsetY:e.clientY-n.y};});
+        div.querySelector('.port.out').addEventListener('mousedown',e=>{e.stopPropagation();connecting={source:n.id};});
+        div.querySelector('.port.in').addEventListener('mouseup',e=>{if(connecting&&connecting.source!==n.id){edges=edges.filter(x=>!(x.source===connecting.source&&x.target===n.id));edges.push({source:connecting.source,target:n.id});connecting=null;render();saveFlow();}});
         canvas.appendChild(div);
       });
     }
@@ -158,23 +125,14 @@
     function render(){renderNodes();drawConnections();}
     document.addEventListener('mousemove',e=>{if(dragging){dragging.node.x=e.clientX-dragging.offsetX;dragging.node.y=e.clientY-dragging.offsetY;render();saveFlow();}});
     document.addEventListener('mouseup',()=>{dragging=null;connecting=null;});
-    document.addEventListener('click',()=>{contextMenu.style.display='none';});
-
-    function saveNodeConfig(){
-      if(!editingNode) return;
-      editingNode.label=document.getElementById('nodeLabel').value||editingNode.label;
-      try{ editingNode.config=JSON.parse(document.getElementById('nodeConfig').value||'{}'); }
-      catch(e){ alert('Config JSON tidak valid!'); return; }
-      closeEditModal(); render(); saveFlow();
-    }
-    function closeEditModal(){ editModal.style.display='none'; editingNode=null; }
+    document.addEventListener('click',()=>{ctx.style.display='none';});
 
     function deleteNode(id){nodes=nodes.filter(n=>n.id!==id);edges=edges.filter(e=>e.source!==id&&e.target!==id);render();saveFlow();}
     function resetCanvas(){if(confirm('Hapus semua?')){nodes=[];edges=[];localStorage.removeItem('nodes');localStorage.removeItem('edges');render();}}
     function saveFlow(){localStorage.setItem('nodes',JSON.stringify(nodes));localStorage.setItem('edges',JSON.stringify(edges));}
     function loadFlow(){location.reload();}
     function exportFlow(){
-      const flow=nodes.map(n=>({id:n.id,type:n.type==='input'?'inject':n.type==='output'?'debug':n.type==='function'?'function':n.type,name:n.label,x:n.x,y:n.y,config:n.config||{},wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
+      const flow=nodes.map(n=>({id:n.id,type:n.type==='input'?'inject':n.type==='output'?'debug':n.type==='function'?'function':n.type,name:n.label,x:n.x,y:n.y,wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
       const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));a.download='flow-ngemiel.json';a.click();
     }
 
@@ -182,3 +140,4 @@
   </script>
 </body>
 </html>
+
