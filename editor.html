@@ -4,21 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Drag & Drop Node-RED Editor @ngemiel</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://unpkg.com/reactflow@11/dist/umd/ReactFlow.umd.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/reactflow@11/dist/style.css">
   <style>
     body { margin: 0; font-family: Arial; background: #f5f5f5; }
     #toolbar { padding: 15px; background: #d32f2f; color: white; text-align: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
-    button, input { margin: 5px; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-    button { background: white; color: #d32f2f; }
+    button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; background: white; color: #d32f2f; }
     button:hover { background: #ffebee; }
     #exportBtn { background: #4caf50; color: white; }
-    #exportBtn:hover { background: #388e3c; }
+    #canvas { height: 80vh; border: 2px dashed #ccc; position: relative; background: white; overflow: auto; }
+    .node { position: absolute; width: 80px; height: 40px; background: #ADD8E6; border: 1px solid #000; border-radius: 5px; text-align: center; line-height: 40px; cursor: move; user-select: none; }
+    .node.input { background: #90EE90; }
+    .node.function { background: #ADD8E6; }
+    .node.output { background: #FFB6C1; }
+    .line { position: absolute; border-top: 2px solid #000; }
     a { color: white; text-decoration: underline; }
-    #root { height: 80vh; }
   </style>
 </head>
 <body>
@@ -34,109 +32,112 @@
     <button onclick="document.getElementById('importFile').click()">Import JSON</button>
     <a href="/" style="margin-left:20px;">← Kembali ke JSON Editor</a>
   </div>
-  <div id="root"></div>
+  <div id="canvas"></div>
 
-  <script type="text/babel">
-    const { useCallback } = React;
-    const { ReactFlow, MiniMap, Controls, Background, addEdge, useNodesState, useEdgesState } = window.ReactFlow;
+  <script>
+    let nodeId = 0;
+    let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
+    let edges = JSON.parse(localStorage.getItem('edges') || '[]');
 
-    const initialNodes = JSON.parse(localStorage.getItem('nodes') || '[]');
-    const initialEdges = JSON.parse(localStorage.getItem('edges') || '[]');
-
-    const App = () => {
-      const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-      const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-      const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
-
-      const addNode = (type) => {
-        const newNode = {
-          id: Date.now().toString(),
-          type: 'default',
-          position: { x: Math.random() * 400, y: Math.random() * 300 },
-          data: { label: `${type.charAt(0).toUpperCase() + type.slice(1)} Node` },
-          style: { 
-            background: type === 'input' ? '#90EE90' : type === 'output' ? '#FFB6C1' : '#ADD8E6',
-            padding: 10, borderRadius: 5, color: '#000'
-          },
-        };
-        setNodes((nds) => nds.concat(newNode));
+    function addNode(type) {
+      nodeId++;
+      const id = 'node-' + nodeId;
+      const node = {
+        id: id,
+        type: type,
+        x: Math.random() * 400 + 100,
+        y: Math.random() * 300 + 100,
+        label: type.charAt(0).toUpperCase() + type.slice(1) + ' Node'
       };
+      nodes.push(node);
+      renderNodes();
+      saveFlow();
+      alert('Node ' + type + ' ditambahkan!');
+    }
 
-      const saveFlow = () => {
-        localStorage.setItem('nodes', JSON.stringify(nodes));
-        localStorage.setItem('edges', JSON.stringify(edges));
-        alert('Flow tersimpan di browser!');
+    function renderNodes() {
+      const canvas = document.getElementById('canvas');
+      canvas.innerHTML = '';
+      nodes.forEach(node => {
+        const div = document.createElement('div');
+        div.className = 'node ' + node.type;
+        div.innerText = node.label;
+        div.style.left = node.x + 'px';
+        div.style.top = node.y + 'px';
+        div.draggable = true;
+        div.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', node.id);
+        });
+        div.addEventListener('dragend', (e) => {
+          node.x = e.clientX - 40;
+          node.y = e.clientY - 20;
+          saveFlow();
+        });
+        canvas.appendChild(div);
+      });
+      renderLines();
+    }
+
+    function renderLines() {
+      // Simple line rendering (basic connection)
+      edges.forEach(edge => {
+        const line = document.createElement('div');
+        line.className = 'line';
+        line.style.left = edge.startX + 'px';
+        line.style.top = edge.startY + 'px';
+        line.style.width = edge.endX - edge.startX + 'px';
+        line.style.height = '2px';
+        line.style.transform = 'rotate(' + edge.angle + 'deg)';
+        document.getElementById('canvas').appendChild(line);
+      });
+    }
+
+    function saveFlow() {
+      localStorage.setItem('nodes', JSON.stringify(nodes));
+      localStorage.setItem('edges', JSON.stringify(edges));
+    }
+
+    function loadFlow() {
+      location.reload();
+    }
+
+    function exportFlow() {
+      const flow = nodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        name: n.label,
+        x: n.x,
+        y: n.y,
+        wires: [] // Add connections later
+      }));
+      const json = JSON.stringify(flow, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'flow-ngemiel.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importFlow(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          nodes = JSON.parse(e.target.result);
+          renderNodes();
+          alert('Import berhasil!');
+        } catch (err) {
+          alert('File JSON tidak valid!');
+        }
       };
+      reader.readAsText(file);
+    }
 
-      const loadFlow = () => location.reload();
-
-      // Export ke JSON Node-RED
-      window.exportFlow = () => {
-        const flow = nodes.map(n => ({
-          id: n.id,
-          type: n.data.label.includes("Input") ? "inject" : n.data.label.includes("Output") ? "debug" : "function",
-          name: n.data.label,
-          x: n.position.x,
-          y: n.position.y,
-          wires: edges.filter(e => e.source === n.id).map(e => [e.target])
-        }));
-        const json = JSON.stringify(flow, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'flow-ngemiel.json';
-        a.click();
-        URL.revokeObjectURL(url);
-        alert('Export berhasil! File: flow-ngemiel.json');
-      };
-
-      // Import JSON
-      window.importFlow = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const flow = JSON.parse(e.target.result);
-            const importedNodes = flow.map(node => ({
-              id: node.id || Date.now().toString(),
-              type: 'default',
-              position: { x: node.x || 100, y: node.y || 100 },
-              data: { label: node.name || node.type },
-              style: { background: node.type === 'inject' ? '#90EE90' : node.type === 'debug' ? '#FFB6C1' : '#ADD8E6', padding: 10, borderRadius: 5 }
-            }));
-            setNodes(importedNodes);
-            alert('Import berhasil!');
-          } catch (err) {
-            alert('File JSON tidak valid!');
-          }
-        };
-        reader.readAsText(file);
-      };
-
-      window.addNode = addNode;
-      window.saveFlow = saveFlow;
-      window.loadFlow = loadFlow;
-
-      return (
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          fitView
-        >
-          <MiniMap />
-          <Controls />
-          <Background />
-        </ReactFlow>
-      );
-    };
-
-    ReactDOM.render(<App />, document.getElementById('root'));
+    // Initial render
+    renderNodes();
   </script>
 </body>
 </html>
