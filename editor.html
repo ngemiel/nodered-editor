@@ -5,23 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Node-RED Web Editor @ngemiel</title>
   <style>
-    body { margin: 0; font-family: Arial; background: #f0f0f0; }
-    #toolbar { padding: 15px; background: #d32f2f; color: white; text-align: center; }
-    button { padding: 10px 20px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: white; color: #d32f2f; }
-    button:hover { background: #ffebee; }
-    #exportBtn { background: #4caf50; color: white; }
-    #canvas { height: 80vh; position: relative; background: white; }
-    .node { position: absolute; width: 140px; height: 70px; background: #87CEFA; border: 3px solid #000; border-radius: 12px; text-align: center; line-height: 70px; cursor: move; user-select: none; box-shadow: 0 6px 15px rgba(0,0,0,0.2); font-weight: bold; font-size: 14px; }
-    .node.input { background: #90EE90; }
-    .node.output { background: #FFB6C1; }
-    .port { width: 16px; height: 16px; background: #000; border-radius: 50%; position: absolute; top: 50%; transform: translateY(-50%); cursor: crosshair; }
-    .port.in { left: -8px; }
-    .port.out { right: -8px; }
-    svg.connection { position: absolute; pointer-events: none; overflow: visible; }
-    svg.connection path { fill: none; stroke: #000; stroke-width: 4; }
-    #contextMenu { position: absolute; background: white; border: 2px solid #d32f2f; border-radius: 8px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 9999; display: none; }
-    #contextMenu button { background: #d32f2f; color: white; width: 100%; margin: 5px 0; }
-    a { color: white; text-decoration: underline; margin-left: 20px; }
+    body { margin:0; font-family:Arial; background:#f0f0f0; }
+    #toolbar { padding:15px; background:#d32f2f; color:white; text-align:center; }
+    button { padding:10px 20px; margin:5px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; background:white; color:#d32f2f; }
+    button:hover { background:#ffebee; }
+    #exportBtn { background:#4caf50; color:white; }
+    #canvas { height:80vh; position:relative; background:white; }
+    .node { position:absolute; width:140px; height:70px; background:#87CEFA; border:3px solid #000; border-radius:12px; text-align:center; line-height:70px; cursor:move; user-select:none; box-shadow:0 6px 15px rgba(0,0,0,0.2); font-weight:bold; }
+    .node.input { background:#90EE90; }
+    .node.output { background:#FFB6C1; }
+    .port { width:16px; height:16px; background:#000; border-radius:50%; position:absolute; top:50%; transform:translateY(-50%); cursor:crosshair; }
+    .port.in { left:-8px; }
+    .port.out { right:-8px; }
+    svg.connections { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+    svg.connections path { fill:none; stroke:#000; stroke-width:4; }
+    #contextMenu { position:absolute; background:white; border:2px solid #d32f2f; border-radius:8px; padding:10px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:9999; display:none; }
+    #contextMenu button { background:#d32f2f; color:white; width:100%; margin:5px 0; }
+    a { color:white; text-decoration:underline; margin-left:20px; }
   </style>
 </head>
 <body>
@@ -35,63 +35,56 @@
     <button id="exportBtn" onclick="exportFlow()">Export JSON</button>
     <a href="/">← JSON Editor</a>
   </div>
-  <div id="canvas"></div>
+  <div id="canvas">
+    <svg class="connections"></svg>
+  </div>
   <div id="contextMenu">
-    <button onclick="deleteNode(currentNodeId)">🗑️ Delete Node</button>
+    <button onclick="deleteNode(currentNodeId)">Delete Node</button>
     <button onclick="hideContextMenu()">Cancel</button>
   </div>
 
   <script>
-    let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
-    let edges = JSON.parse(localStorage.getItem('edges') || '[]');
+    let nodes = JSON.parse(localStorage.getItem('nodes')||'[]');
+    let edges = JSON.parse(localStorage.getItem('edges')||'[]');
     let dragging = null;
     let connecting = null;
     let currentNodeId = null;
     const canvas = document.getElementById('canvas');
+    const svg = document.querySelector('svg.connections');
     const contextMenu = document.getElementById('contextMenu');
 
     function addNode(type) {
       nodes.push({
-        id: 'n' + Date.now(),
+        id: 'n'+Date.now(),
         type,
-        x: 150 + Math.random() * 300,
-        y: 100 + Math.random() * 300,
-        label: type === 'input' ? 'Inject' : type === 'output' ? 'Debug' : 'Function'
+        x: 150 + Math.random()*400,
+        y: 100 + Math.random()*300,
+        label: type==='input'?'Inject':type==='output'?'Debug':'Function'
       });
       render();
       saveFlow();
     }
 
-    function render() {
-      canvas.innerHTML = '';
-      
-      // Render semua koneksi (SVG curved)
+    function drawConnections() {
+      svg.innerHTML = '';
       edges.forEach(edge => {
-        const src = nodes.find(n => n.id === edge.source);
-        const dst = nodes.find(n => n.id === edge.target);
+        const src = nodes.find(n=>n.id===edge.source);
+        const dst = nodes.find(n=>n.id===edge.target);
         if (!src || !dst) return;
-
-        const x1 = src.x + 140 + 8;
+        const x1 = src.x + 148;
         const y1 = src.y + 35;
         const x2 = dst.x - 8;
         const y2 = dst.y + 35;
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('class', 'connection');
-        svg.style.left = '0px';
-        svg.style.top = '0px';
-        svg.style.width = '100%';
-        svg.style.height = '100%';
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const dx = x2 - x1;
-        const curve = Math.abs(dx) * 0.5;
-        path.setAttribute('d', `M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}`);
+        const curve = Math.abs(x2-x1)*0.5;
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d',`M${x1},${y1} C${x1+curve},${y1} ${x2-curve},${y2} ${x2},${y2}`);
         svg.appendChild(path);
-        canvas.appendChild(svg);
       });
+    }
 
-      // Render nodes
+    function renderNodes() {
+      // Hapus node lama
+      document.querySelectorAll('.node').forEach(n=>n.remove());
       nodes.forEach(node => {
         const div = document.createElement('div');
         div.className = `node ${node.type}`;
@@ -108,31 +101,31 @@
         div.appendChild(portOut);
 
         // Klik kanan = delete
-        div.addEventListener('contextmenu', e => {
+        div.addEventListener('contextmenu', e=>{
           e.preventDefault();
           currentNodeId = node.id;
-          contextMenu.style.left = e.clientX + 'px';
-          contextMenu.style.top = e.clientY + 'px';
+          contextMenu.style.left = e.clientX+'px';
+          contextMenu.style.top = e.clientY+'px';
           contextMenu.style.display = 'block';
         });
 
         // Drag node
-        div.addEventListener('mousedown', e => {
-          if (e.button !== 0 || e.target.classList.contains('port')) return;
-          dragging = { node, offsetX: e.clientX - node.x, offsetY: e.clientY - node.y };
+        div.addEventListener('mousedown', e=>{
+          if (e.button!==0 || e.target.classList.contains('port')) return;
+          dragging = {node, offsetX:e.clientX-node.x, offsetY:e.clientY-node.y};
         });
 
         // Mulai koneksi
-        portOut.addEventListener('mousedown', e => {
+        portOut.addEventListener('mousedown', e=>{
           e.stopPropagation();
-          connecting = { source: node.id };
+          connecting = {source: node.id};
         });
 
         // Akhiri koneksi
-        portIn.addEventListener('mouseup', e => {
+        portIn.addEventListener('mouseup', e=>{
           if (connecting && connecting.source !== node.id) {
-            edges = edges.filter(e => !(e.source === connecting.source && e.target === node.id));
-            edges.push({ source: connecting.source, target: node.id });
+            edges = edges.filter(e=>!(e.source===connecting.source && e.target===node.id));
+            edges.push({source:connecting.source, target:node.id});
             connecting = null;
             render();
             saveFlow();
@@ -143,55 +136,54 @@
       });
     }
 
-    // Global drag & redraw
-    document.addEventListener('mousemove', e => {
+    function render() {
+      renderNodes();
+      drawConnections();
+    }
+
+    document.addEventListener('mousemove', e=>{
       if (dragging) {
         dragging.node.x = e.clientX - dragging.offsetX;
         dragging.node.y = e.clientY - dragging.offsetY;
-        render();  // Ini kuncinya: render ulang setiap gerak
+        render();
         saveFlow();
       }
     });
 
-    document.addEventListener('mouseup', () => {
-      dragging = null;
-      connecting = null;
-    });
+    document.addEventListener('mouseup', ()=>{ dragging=null; connecting=null; });
+    document.addEventListener('click', ()=>{ contextMenu.style.display='none'; });
 
-    document.addEventListener('click', () => hideContextMenu());
-
-    function deleteNode(id) {
-      nodes = nodes.filter(n => n.id !== id);
-      edges = edges.filter(e => e.source !== id && e.target !== id);
-      hideContextMenu();
+    function deleteNode(id){
+      nodes = nodes.filter(n=>n.id!==id);
+      edges = edges.filter(e=>e.source!==id && e.target!==id);
       render();
       saveFlow();
     }
 
-    function hideContextMenu() { contextMenu.style.display = 'none'; }
+    function hideContextMenu(){ contextMenu.style.display='none'; }
 
-    function saveFlow() {
-      localStorage.setItem('nodes', JSON.stringify(nodes));
-      localStorage.setItem('edges', JSON.stringify(edges));
+    function saveFlow(){
+      localStorage.setItem('nodes',JSON.stringify(nodes));
+      localStorage.setItem('edges',JSON.stringify(edges));
     }
 
-    function loadFlow() { location.reload(); }
+    function loadFlow(){ location.reload(); }
 
-    function exportFlow() {
-      const flow = nodes.map(n => ({
-        id: n.id,
-        type: n.type === 'input' ? 'inject' : n.type === 'output' ? 'debug' : 'function',
-        name: n.label,
-        x: n.x, y: n.y,
-        wires: edges.filter(e => e.source === n.id).map(e => [e.target])
+    function exportFlow(){
+      const flow = nodes.map(n=>({
+        id:n.id,
+        type:n.type==='input'?'inject':n.type==='output'?'debug':'function',
+        name:n.label,
+        x:n.x, y:n.y,
+        wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])
       }));
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([JSON.stringify(flow, null, 2)], {type: 'application/json'}));
-      a.download = 'flow-ngemiel.json';
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));
+      a.download='flow-ngemiel.json';
       a.click();
     }
 
-    render();
+    render(); // Mulai
   </script>
 </body>
 </html>
