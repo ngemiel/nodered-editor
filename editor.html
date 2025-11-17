@@ -1,16 +1,14 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Node-RED Web Editor @ngemiel</title>
   <style>
-    body{margin:0;font-family:-apple-system,Arial,sans-serif;background:#f0f0f0;color:#000;transition:all .3s}
-    .dark body{background:#121212;color:#eee}
-    #toolbar{padding:12px;background:#d32f2f;color:white;box-shadow:0 2px 10px rgba(0,0,0,.2);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;position:relative}
+    body{margin:0;font-family:-apple-system,Arial,sans-serif;background:#f0f0f0}
+    #toolbar{padding:12px;background:#d32f2f;color:white;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.2);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
     button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;background:white;color:#d32f2f;font-size:14px}
     button:hover{background:#ffebee}
-    .dark button{background:#333;color:#fff}
-    .dark button:hover{background:#444}
     #exportBtn{background:#4caf50;color:white}
     #resetBtn{background:#d50000;color:white}
     .mqtt-in{background:#66BB6A;color:white}
@@ -18,10 +16,8 @@
     .http{background:#7E57C2;color:white}
     .social{background:#0088cc;color:white}
     .social.whatsapp{background:#25D366}
-    #canvas{height:80vh;position:relative;background:#fdfdfd;transition:all .3s}
-    .dark #canvas{background:#1e1e1e}
-    .node{position:absolute;width:100px;height:50px;border:2px solid #000;border-radius:8px;text-align:center;line-height:50px;cursor:move;user-select:none;box-shadow:0 3px 8px rgba(0,0,0,.15);font-weight:bold;font-size:13px;color:#000}
-    .dark .node{color:#fff;border-color:#444;box-shadow:0 3px 10px rgba(0,0,0,.5)}
+    #canvas{height:80vh;position:relative;background:#fdfdfd}
+    .node{position:absolute;width:100px;height:50px;border:2px solid #000;border-radius:8px;text-align:center;line-height:50px;cursor:move;user-select:none;box-shadow:0 3px 8px rgba(0,0,0,0.15);font-weight:bold;font-size:13px;color:#000}
     .node.input{background:#A8E6A1;border-color:#2e7d32}
     .node.function{background:#B3E5FC;border-color:#01579b}
     .node.output{background:#FFAB91;border-color:#d84315}
@@ -30,16 +26,12 @@
     .node.http{background:#B39DDB;border-color:#512da8}
     .node.telegram{background:#7FD7FF;border-color:#0088cc}
     .node.whatsapp{background:#A8E6CF;border-color:#25D366}
-    .dark .node.telegram{background:#0088cc}
-    .dark .node.whatsapp{background:#25D366}
     .port{width:12px;height:12px;background:#000;border-radius:50%;position:absolute;top:50%;transform:translateY(-50%);cursor:crosshair}
-    .dark .port{background:#fff}
-    svg.connections path{stroke:#000;stroke-width:3;transition:all .3s}
-    .dark svg.connections path{stroke:#888}
-    #themeBtn{position:absolute;right:15px;top:12px;background:#333;color:white;padding:8px 12px;font-size:20px;border-radius:50%;cursor:pointer}
-    #contextMenu{position:absolute;background:white;border:2px solid #d32f2f;border-radius:8px;padding:8px;box-shadow:0 4px 15px rgba(0,0,0,.3);z-index:9999;display:none}
-    .dark #contextMenu{background:#222;border-color:#d32f2f}
-    .dark #contextMenu button{background:#d32f2f;color:white}
+    .port.in{left:-6px}.port.out{right:-6px}
+    svg.connections{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+    svg.connections path{fill:none;stroke:#000;stroke-width:3}
+    #contextMenu{position:absolute;background:white;border:2px solid #d32f2f;border-radius:8px;padding:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:9999;display:none;font-size:14px}
+    #contextMenu button{background:#d32f2f;color:white;width:100%;margin:4px 0;padding:8px}
     a{color:white;text-decoration:underline;font-size:14px}
   </style>
 </head>
@@ -59,7 +51,6 @@
     <button id="exportBtn" onclick="exportFlow()">Export</button>
     <button id="resetBtn" onclick="resetCanvas()">Reset</button>
     <a href="/">← JSON Editor</a>
-    <div id="themeBtn" onclick="toggleTheme()">Dark Mode</div>
   </div>
   <div id="canvas"><svg class="connections"></svg></div>
   <div id="contextMenu">
@@ -74,24 +65,13 @@
     const canvas=document.getElementById('canvas');
     const svg=document.querySelector('svg.connections');
     const ctx=document.getElementById('contextMenu');
-    const themeBtn=document.getElementById('themeBtn');
-
-    // Load tema dari localStorage
-    if(localStorage.getItem('theme')==='dark'||(!localStorage.getItem('theme')&&window.matchMedia('(prefers-color-scheme: dark)').matches)){
-      document.body.classList.add('dark');
-      themeBtn.textContent='Light Mode';
-    }
-
-    function toggleTheme(){
-      document.body.classList.toggle('dark');
-      const isDark=document.body.classList.contains('dark');
-      themeBtn.textContent=isDark?'Light Mode':'Dark Mode';
-      localStorage.setItem('theme',isDark?'dark':'light');
-    }
 
     const labels={input:'Inject',function:'Function',output:'Debug','mqtt-in':'MQTT In','mqtt-out':'MQTT Out',http:'HTTP Req',telegram:'Telegram',whatsapp:'WhatsApp'};
 
-    function addNode(t){nodes.push({id:'n'+Date.now(),type:t,x:150+Math.random()*600,y:100+Math.random()*300,label:labels[t]});render();saveFlow();}
+    function addNode(t){
+      nodes.push({id:'n'+Date.now(),type:t,x:150+Math.random()*600,y:100+Math.random()*300,label:labels[t]});
+      render();saveFlow();
+    }
 
     function drawConnections(){
       svg.innerHTML='';
@@ -111,9 +91,11 @@
       document.querySelectorAll('.node').forEach(n=>n.remove());
       nodes.forEach(n=>{
         const div=document.createElement('div');
-        div.className=`node ${n.type}`;div.id=n.id;div.innerText=n.label;
-        div.style.left=n.x+'px';div.style.top=n.y+'px';
+        div.className=`node ${n.type}`;
+        div.id=n.id; div.innerText=n.label;
+        div.style.left=n.x+'px'; div.style.top=n.y+'px';
         ['in','out'].forEach(p=>{const port=document.createElement('div');port.className=`port ${p}`;div.appendChild(port);});
+
         div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;ctx.style.left=e.clientX+'px';ctx.style.top=e.clientY+'px';ctx.style.display='block';});
         div.addEventListener('mousedown',e=>{if(e.button!==0||e.target.classList.contains('port'))return;dragging={node:n,offsetX:e.clientX-n.x,offsetY:e.clientY-n.y};});
         div.querySelector('.port.out').addEventListener('mousedown',e=>{e.stopPropagation();connecting={source:n.id};});
@@ -128,16 +110,22 @@
     document.addEventListener('click',()=>{ctx.style.display='none';});
 
     function deleteNode(id){nodes=nodes.filter(n=>n.id!==id);edges=edges.filter(e=>e.source!==id&&e.target!==id);render();saveFlow();}
-    function resetCanvas(){if(confirm('Hapus semua?')){nodes=[];edges=[];localStorage.removeItem('nodes');localStorage.removeItem('edges');render();}}
+    function resetCanvas(){if(confirm('Hapus semua?')){nodes=[];edges=[];localStorage.clear();render();}}
     function saveFlow(){localStorage.setItem('nodes',JSON.stringify(nodes));localStorage.setItem('edges',JSON.stringify(edges));}
     function loadFlow(){location.reload();}
     function exportFlow(){
-      const flow=nodes.map(n=>({id:n.id,type:n.type==='input'?'inject':n.type==='output'?'debug':n.type==='function'?'function':n.type,name:n.label,x:n.x,y:n.y,wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
-      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));a.download='flow-ngemiel.json';a.click();
+      const flow=nodes.map(n=>({
+        id:n.id,
+        type:n.type==='input'?'inject':n.type==='output'?'debug':n.type==='function'?'function':n.type,
+        name:n.label,x:n.x,y:n.y,
+        wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])
+      }));
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));
+      a.download='flow-ngemiel.json';a.click();
     }
 
     render();
   </script>
 </body>
 </html>
-
