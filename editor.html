@@ -11,11 +11,13 @@
     button:hover { background: #ffebee; }
     #exportBtn { background: #4caf50; color: white; }
     #canvas { height: 80vh; border: 2px dashed #ccc; position: relative; background: white; overflow: auto; }
-    .node { position: absolute; width: 80px; height: 40px; background: #ADD8E6; border: 1px solid #000; border-radius: 5px; text-align: center; line-height: 40px; cursor: move; user-select: none; }
+    .node { position: absolute; width: 100px; height: 50px; background: #ADD8E6; border: 1px solid #000; border-radius: 5px; text-align: center; line-height: 50px; cursor: move; user-select: none; z-index: 10; }
     .node.input { background: #90EE90; }
     .node.function { background: #ADD8E6; }
     .node.output { background: #FFB6C1; }
-    .line { position: absolute; border-top: 2px solid #000; }
+    .port { width: 10px; height: 10px; background: #000; border-radius: 50%; position: absolute; }
+    .port.left { left: -5px; top: 50%; transform: translateY(-50%); }
+    .port.right { right: -5px; top: 50%; transform: translateY(-50%); }
     a { color: white; text-decoration: underline; }
   </style>
 </head>
@@ -35,13 +37,11 @@
   <div id="canvas"></div>
 
   <script>
-    let nodeId = 0;
     let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
     let edges = JSON.parse(localStorage.getItem('edges') || '[]');
 
     function addNode(type) {
-      nodeId++;
-      const id = 'node-' + nodeId;
+      const id = 'node-' + Date.now();
       const node = {
         id: id,
         type: type,
@@ -50,45 +50,73 @@
         label: type.charAt(0).toUpperCase() + type.slice(1) + ' Node'
       };
       nodes.push(node);
-      renderNodes();
+      render();
       saveFlow();
-      alert('Node ' + type + ' ditambahkan!');
+      console.log('Node ' + type + ' ditambahkan!'); // Cek console F12 kalau gak ada alert
     }
 
-    function renderNodes() {
+    function render() {
       const canvas = document.getElementById('canvas');
       canvas.innerHTML = '';
       nodes.forEach(node => {
         const div = document.createElement('div');
         div.className = 'node ' + node.type;
-        div.innerText = node.label;
+        div.id = node.id;
+        div.innerText = node.label.substring(0, 10) + '...'; // Short label
         div.style.left = node.x + 'px';
         div.style.top = node.y + 'px';
-        div.draggable = true;
-        div.addEventListener('dragstart', (e) => {
-          e.dataTransfer.setData('text/plain', node.id);
+
+        // Port left & right
+        const leftPort = document.createElement('div');
+        leftPort.className = 'port left';
+        const rightPort = document.createElement('div');
+        rightPort.className = 'port right';
+        div.appendChild(leftPort);
+        div.appendChild(rightPort);
+
+        // Drag functionality
+        let isDragging = false;
+        let startX, startY;
+
+        div.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          startX = e.clientX - node.x;
+          startY = e.clientY - node.y;
+          div.style.zIndex = 100;
+          canvas.style.cursor = 'grabbing';
         });
-        div.addEventListener('dragend', (e) => {
-          node.x = e.clientX - 40;
-          node.y = e.clientY - 20;
-          saveFlow();
+
+        document.addEventListener('mousemove', (e) => {
+          if (isDragging) {
+            node.x = e.clientX - startX;
+            node.y = e.clientY - startY;
+            div.style.left = node.x + 'px';
+            div.style.top = node.y + 'px';
+          }
         });
+
+        document.addEventListener('mouseup', (e) => {
+          if (isDragging) {
+            isDragging = false;
+            div.style.zIndex = 10;
+            canvas.style.cursor = 'default';
+            saveFlow();
+          }
+        });
+
         canvas.appendChild(div);
       });
-      renderLines();
-    }
-
-    function renderLines() {
-      // Simple line rendering (basic connection)
+      // Render lines if edges exist (simple)
       edges.forEach(edge => {
         const line = document.createElement('div');
-        line.className = 'line';
+        line.style.position = 'absolute';
+        line.style.borderTop = '2px solid #000';
         line.style.left = edge.startX + 'px';
         line.style.top = edge.startY + 'px';
-        line.style.width = edge.endX - edge.startX + 'px';
-        line.style.height = '2px';
+        line.style.width = edge.length + 'px';
+        line.style.height = '0';
         line.style.transform = 'rotate(' + edge.angle + 'deg)';
-        document.getElementById('canvas').appendChild(line);
+        canvas.appendChild(line);
       });
     }
 
@@ -108,7 +136,7 @@
         name: n.label,
         x: n.x,
         y: n.y,
-        wires: [] // Add connections later
+        wires: [] // Placeholder for connections
       }));
       const json = JSON.stringify(flow, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
@@ -118,6 +146,7 @@
       a.download = 'flow-ngemiel.json';
       a.click();
       URL.revokeObjectURL(url);
+      console.log('Export done!');
     }
 
     function importFlow(event) {
@@ -127,17 +156,17 @@
       reader.onload = (e) => {
         try {
           nodes = JSON.parse(e.target.result);
-          renderNodes();
-          alert('Import berhasil!');
+          render();
+          console.log('Import done!');
         } catch (err) {
-          alert('File JSON tidak valid!');
+          console.error('Import error:', err);
         }
       };
       reader.readAsText(file);
     }
 
-    // Initial render
-    renderNodes();
+    // Initial load
+    render();
   </script>
 </body>
 </html>
