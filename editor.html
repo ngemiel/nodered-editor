@@ -6,19 +6,18 @@
   <title>Node-RED Web Editor @ngemiel</title>
   <style>
     body { margin:0; font-family:-apple-system,system-ui,Arial,sans-serif; background:#f0f0f0; }
-    #toolbar { padding:12px; background:#d32f2f; color:white; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.2); }
-    button { padding:8px 16px; margin:4px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; background:white; color:#d32f2f; font-size:14px; }
+    #toolbar { padding:12px; background:#d32f2f; color:white; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.2); display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px; }
+    button { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; background:white; color:#d32f2f; font-size:14px; }
     button:hover { background:#ffebee; }
     #exportBtn { background:#4caf50; color:white; }
+    #resetBtn { background:#d50000; color:white; }
     #canvas { height:80vh; position:relative; background:#fdfdfd; }
     .node { 
       position:absolute; width:100px; height:50px; 
       background:#87CEFA; border:2px solid #000; border-radius:8px; 
       text-align:center; line-height:50px; cursor:move; user-select:none; 
       box-shadow:0 3px 8px rgba(0,0,0,0.15); font-weight:bold; font-size:13px; color:#000;
-      transition:transform 0.1s;
     }
-    .node:hover { transform:scale(1.05); }
     .node.input { background:#A8E6A1; border-color:#2e7d32; }
     .node.function { background:#B3E5FC; border-color:#01579b; }
     .node.output { background:#FFAB91; border-color:#d84315; }
@@ -29,18 +28,19 @@
     svg.connections path { fill:none; stroke:#000; stroke-width:3; }
     #contextMenu { position:absolute; background:white; border:2px solid #d32f2f; border-radius:8px; padding:8px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:9999; display:none; font-size:14px; }
     #contextMenu button { background:#d32f2f; color:white; width:100%; margin:4px 0; padding:8px; }
-    a { color:white; text-decoration:underline; margin-left:15px; font-size:14px; }
+    a { color:white; text-decoration:underline; font-size:14px; }
   </style>
 </head>
 <body>
   <div id="toolbar">
-    <h2 style="margin:0; font-size:18px;">Node-RED Web Editor @ngemiel</h2>
+    <h2 style="margin:0 10px 0 0; font-size:18px;">Node-RED Web Editor @ngemiel</h2>
     <button onclick="addNode('input')">+ Inject</button>
     <button onclick="addNode('function')">+ Function</button>
     <button onclick="addNode('output')">+ Debug</button>
     <button onclick="saveFlow()">Simpan</button>
     <button onclick="loadFlow()">Muat</button>
     <button id="exportBtn" onclick="exportFlow()">Export</button>
+    <button id="resetBtn" onclick="resetCanvas()">Reset Canvas</button>
     <a href="/">← JSON Editor</a>
   </div>
   <div id="canvas">
@@ -163,12 +163,25 @@
       saveFlow();
     }
 
+    function hideContextMenu(){ contextMenu.style.display='none'; }
+
     function saveFlow(){
       localStorage.setItem('nodes',JSON.stringify(nodes));
       localStorage.setItem('edges',JSON.stringify(edges));
     }
 
     function loadFlow(){ location.reload(); }
+
+    // BARU: Reset Canvas
+    function resetCanvas(){
+      if(confirm('Yakin hapus semua node & koneksi?')){
+        nodes = [];
+        edges = [];
+        localStorage.removeItem('nodes');
+        localStorage.removeItem('edges');
+        render();
+      }
+    }
 
     function exportFlow(){
       const flow = nodes.map(n=>({
