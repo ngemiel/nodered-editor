@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Node-RED Web Editor @ngemiel</title>
+  <title>NodeBlu – Visual Flow Editor by @ngemiel</title>
   <style>
     body{margin:0;font-family:-apple-system,Arial,sans-serif;background:#f0f0f0}
-    #toolbar{padding:12px;background:#d32f2f;color:white;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.2);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
-    button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;background:white;color:#d32f2f;font-size:14px}
-    button:hover{background:#ffebee}
+    #toolbar{padding:12px;background:#0066ff;color:white;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.2);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;position:relative}
+    button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;background:white;color:#0066ff;font-size:14px}
+    button:hover{background:#e3f2fd}
     #exportBtn{background:#4caf50;color:white}
     #resetBtn{background:#d50000;color:white}
     .mqtt-in{background:#66BB6A;color:white}
@@ -29,22 +29,20 @@
     .port{width:12px;height:12px;background:#000;border-radius:50%;position:absolute;top:50%;transform:translateY(-50%);cursor:crosshair}
     .port.in{left:-6px}.port.out{right:-6px}
     svg.connections{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
-    svg.connections path{fill:none;stroke:#000;stroke-width:3}
-    #contextMenu{position:absolute;background:white;border:2px solid #d32f2f;border-radius:8px;padding:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:9999;display:none;font-size:14px}
-    #contextMenu button{background:#d32f2f;color:white;width:100%;margin:4px 0;padding:8px}
-    a{color:white;text-decoration:underline;font-size:14px}
-
-    /* === TAMBAHAN FITUR EDIT NODE === */
+    svg.connections path{fill:none;stroke:#0066ff;stroke-width:4}
+    #contextMenu{position:absolute;background:white;border:2px solid #0066ff;border-radius:8px;padding:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:9999;display:none;font-size:14px}
+    #contextMenu button{background:#0066ff;color:white;width:100%;margin:4px 0;padding:8px}
+    #footer{position:absolute;bottom:8px;left:12px;font-size:11px;color:#666}
     #editModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:10000;align-items:center;justify-content:center}
     #editModal .modal-content{background:white;padding:25px;border-radius:12px;width:340px;max-width:90%;box-shadow:0 10px 30px rgba(0,0,0,0.4)}
     #editModal input,#editModal textarea{width:100%;margin:10px 0;padding:12px;border:1px solid #ccc;border-radius:6px;font-family:monospace;font-size:13px}
-    #editModal button{padding:12px;background:#d32f2f;color:white;border:none;border-radius:6px;cursor:pointer;margin:5px 0;width:100%;font-weight:bold}
-    /* ==================================== */
+    #editModal button{padding:12px;background:#0066ff;color:white;border:none;border-radius:6px;cursor:pointer;margin:5px 0;width:100%;font-weight:bold}
+    a{color:white;text-decoration:underline;font-size:14px}
   </style>
 </head>
 <body>
   <div id="toolbar">
-    <h2 style="margin:0 10px 0 0;font-size:18px">Node-RED Web Editor @ngemiel</h2>
+    <h2 style="margin:0 10px 0 0;font-size:18px">NodeBlu by @ngemiel</h2>
     <button onclick="addNode('input')">+ Inject</button>
     <button onclick="addNode('function')">+ Function</button>
     <button onclick="addNode('output')">+ Debug</button>
@@ -60,21 +58,17 @@
     <a href="/">← JSON Editor</a>
   </div>
   <div id="canvas"><svg class="connections"></svg></div>
+  <div id="footer">NodeBlu by @ngemiel • based on Node-RED • Apache 2.0</div>
   <div id="contextMenu">
     <button onclick="deleteNode(currentNodeId)">Delete Node</button>
     <button onclick="hideContextMenu()">Cancel</button>
   </div>
 
-  <!-- TAMBAHAN: Modal Edit Node -->
   <div id="editModal">
     <div class="modal-content">
       <h3>Edit Node</h3>
-      <input id="editLabel" placeholder="Label (opsional)">
-      <textarea id="editConfig" rows="10" placeholder='Contoh Telegram:
-{"token":"123456:ABCDEF","chatId":"123456789"}
-
-Contoh HTTP:
-{"url":"https://indodax.com/api/ticker/btcidr"}'></textarea>
+      <input id="editLabel" placeholder="Label">
+      <textarea id="editConfig" rows="10" placeholder='Telegram: {"token":"123456:ABC","chatId":"123456789"}\nHTTP: {"url":"https://indodax.com/api/ticker/btcidr"}'></textarea>
       <button onclick="saveEdit()">Save</button>
       <button onclick="closeEdit()">Cancel</button>
     </div>
@@ -114,18 +108,10 @@ Contoh HTTP:
       document.querySelectorAll('.node').forEach(n=>n.remove());
       nodes.forEach(n=>{
         const div=document.createElement('div');
-        div.className=`node ${n.type}`;
-        div.id=n.id; div.innerText=n.label;
-        div.style.left=n.x+'px'; div.style.top=n.y+'px';
+        div.className=`node ${n.type}`;div.id=n.id;div.innerText=n.label;
+        div.style.left=n.x+'px';div.style.top=n.y+'px';
 
-        // DOUBLE-CLICK BUAT EDIT
-        div.addEventListener('dblclick', (e)=>{
-          e.stopPropagation();
-          editingNode = n;
-          document.getElementById('editLabel').value = n.label;
-          document.getElementById('editConfig').value = JSON.stringify(n.config||{}, null, 2);
-          editModal.style.display = 'flex';
-        });
+        div.addEventListener('dblclick',(e)=>{e.stopPropagation();editingNode=n;document.getElementById('editLabel').value=n.label;document.getElementById('editConfig').value=JSON.stringify(n.config||{},null,2);editModal.style.display='flex';});
 
         ['in','out'].forEach(p=>{const port=document.createElement('div');port.className=`port ${p}`;div.appendChild(port);});
 
@@ -148,37 +134,22 @@ Contoh HTTP:
     document.addEventListener('mouseup',()=>{dragging=null;connecting=null;});
     document.addEventListener('click',()=>{ctx.style.display='none';});
 
-    // FUNGSI EDIT NODE
     function saveEdit(){
-      if(!editingNode) return;
-      editingNode.label = document.getElementById('editLabel').value || editingNode.label;
-      try {
-        editingNode.config = JSON.parse(document.getElementById('editConfig').value || '{}');
-      } catch(e) {
-        alert('Config harus JSON valid!');
-        return;
-      }
-      closeEdit();
-      render();
-      saveFlow();
+      if(!editingNode)return;
+      editingNode.label=document.getElementById('editLabel').value||editingNode.label;
+      try{editingNode.config=JSON.parse(document.getElementById('editConfig').value||'{}');}
+      catch(e){alert('Config harus JSON valid!');return;}
+      closeEdit();render();saveFlow();
     }
-    function closeEdit(){ editModal.style.display='none'; editingNode=null; }
+    function closeEdit(){editModal.style.display='none';editingNode=null;}
 
     function deleteNode(id){nodes=nodes.filter(n=>n.id!==id);edges=edges.filter(e=>e.source!==id&&e.target!==id);render();saveFlow();}
     function resetCanvas(){if(confirm('Hapus semua?')){nodes=[];edges=[];localStorage.clear();render();}}
     function saveFlow(){localStorage.setItem('nodes',JSON.stringify(nodes));localStorage.setItem('edges',JSON.stringify(edges));}
     function loadFlow(){location.reload();}
     function exportFlow(){
-      const flow=nodes.map(n=>({
-        id:n.id,
-        type:n.type==='input'?'inject':n.type==='output'?'debug':n.type==='function'?'function':n.type,
-        name:n.label,x:n.x,y:n.y,
-        config:n.config||{},
-        wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])
-      }));
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));
-      a.download='flow-ngemiel.json';a.click();
+      const flow=nodes.map(n=>({id:n.id,type:n.type,name:n.label,x:n.x,y:n.y,config:n.config||{},wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));a.download='nodeblu-flow.json';a.click();
     }
 
     render();
