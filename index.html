@@ -1,23 +1,84 @@
-<script>
-document.addEventListener('keydown', function(e) {
-  if (e.ctrlKey && e.key === 's') {
-    e.preventDefault();
-    const flows = RED.nodes.export();
-    const content = btoa(JSON.stringify(flows, null, 2));
-    
-    fetch('https://api.github.com/repos/ngemiel/nodered-editor/contents/flows.json', {
-      method: 'PUT',
-      headers: {
-        'Authorization': 'token YOUR_GITHUB_TOKEN',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: 'Auto-save from editor',
-        content: content,
-        sha: CURRENT_SHA // ganti via GET dulu
-      })
-    })
-    .then(() => alert('Flow tersimpan otomatis!'));
-  }
-});
-</script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NodeRED Editor @ngemiel</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/reactflow/dist/umd/ReactFlow.umd.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/reactflow/dist/style.css"/>
+  <style>
+    body { margin: 0; font-family: Arial; background: #f5f5f5; }
+    #toolbar { padding: 10px; background: #d32f2f; color: white; }
+    button { margin: 5px; padding: 8px 15px; }
+    #root { height: 80vh; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <h2>NodeRED Editor @ngemiel</h2>
+    <button onclick="addNode('input')">+ Input</button>
+    <button onclick="addNode('function')">+ Function</button>
+    <button onclick="addNode('output')">+ Output</button>
+    <button onclick="saveFlow()">Simpan</button>
+    <button onclick="loadFlow()">Muat</button>
+  </div>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useCallback } = React;
+    const { ReactFlow, MiniMap, Controls, Background, addEdge, useNodesState, useEdgesState } = ReactFlow;
+
+    const initialNodes = JSON.parse(localStorage.getItem('nodes') || '[]');
+    const initialEdges = JSON.parse(localStorage.getItem('edges') || '[]');
+
+    const App = () => {
+      const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+      const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+      const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+
+      const addNode = (type) => {
+        const newNode = {
+          id: Date.now().toString(),
+          type: 'default',
+          position: { x: Math.random() * 400, y: Math.random() * 400 },
+          data: { label: `${type} node` },
+        };
+        setNodes((nds) => nds.concat(newNode));
+      };
+
+      const saveFlow = () => {
+        localStorage.setItem('nodes', JSON.stringify(nodes));
+        localStorage.setItem('edges', JSON.stringify(edges));
+        alert('Flow tersimpan!');
+      };
+
+      const loadFlow = () => location.reload();
+
+      return (
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          fitView
+        >
+          <MiniMap />
+          <Controls />
+          <Background />
+        </ReactFlow>
+      );
+    };
+
+    window.addNode = addNode;
+    window.saveFlow = saveFlow;
+    window.loadFlow = loadFlow;
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
