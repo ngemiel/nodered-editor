@@ -11,16 +11,15 @@
     button:hover { background:#ffebee; }
     #exportBtn { background:#4caf50; color:white; }
     #resetBtn { background:#d50000; color:white; }
+    .social-btn { background:#0088cc; color:white; } /* Telegram */
+    .social-btn.whatsapp { background:#25D366; }
     #canvas { height:80vh; position:relative; background:#fdfdfd; }
-    .node { 
-      position:absolute; width:100px; height:50px; 
-      background:#87CEFA; border:2px solid #000; border-radius:8px; 
-      text-align:center; line-height:50px; cursor:move; user-select:none; 
-      box-shadow:0 3px 8px rgba(0,0,0,0.15); font-weight:bold; font-size:13px; color:#000;
-    }
+    .node { position:absolute; width:100px; height:50px; background:#87CEFA; border:2px solid #000; border-radius:8px; text-align:center; line-height:50px; cursor:move; user-select:none; box-shadow:0 3px 8px rgba(0,0,0,0.15); font-weight:bold; font-size:13px; color:#000; }
     .node.input { background:#A8E6A1; border-color:#2e7d32; }
     .node.function { background:#B3E5FC; border-color:#01579b; }
     .node.output { background:#FFAB91; border-color:#d84315; }
+    .node.telegram { background:#7FD7FF; border-color:#0088cc; }
+    .node.whatsapp { background:#A8E6CF; border-color:#25D366; }
     .port { width:12px; height:12px; background:#000; border-radius:50%; position:absolute; top:50%; transform:translateY(-50%); cursor:crosshair; }
     .port.in { left:-6px; }
     .port.out { right:-6px; }
@@ -37,10 +36,12 @@
     <button onclick="addNode('input')">+ Inject</button>
     <button onclick="addNode('function')">+ Function</button>
     <button onclick="addNode('output')">+ Debug</button>
+    <button class="social-btn" onclick="addNode('telegram')">Telegram</button>
+    <button class="social-btn whatsapp" onclick="addNode('whatsapp')">WhatsApp</button>
     <button onclick="saveFlow()">Simpan</button>
     <button onclick="loadFlow()">Muat</button>
     <button id="exportBtn" onclick="exportFlow()">Export</button>
-    <button id="resetBtn" onclick="resetCanvas()">Reset Canvas</button>
+    <button id="resetBtn" onclick="resetCanvas()">Reset</button>
     <a href="/">← JSON Editor</a>
   </div>
   <div id="canvas">
@@ -62,12 +63,20 @@
     const contextMenu = document.getElementById('contextMenu');
 
     function addNode(type) {
+      const labels = {
+        input: 'Inject', function: 'Function', output: 'Debug',
+        telegram: 'Telegram', whatsapp: 'WhatsApp'
+      };
+      const classes = {
+        telegram: 'telegram', whatsapp: 'whatsapp'
+      };
       nodes.push({
         id: 'n'+Date.now(),
         type,
+        class: classes[type] || type,
         x: 150 + Math.random()*500,
         y: 100 + Math.random()*300,
-        label: type==='input'?'Inject':type==='output'?'Debug':'Function'
+        label: labels[type]
       });
       render();
       saveFlow();
@@ -94,7 +103,7 @@
       document.querySelectorAll('.node').forEach(n=>n.remove());
       nodes.forEach(node => {
         const div = document.createElement('div');
-        div.className = `node ${node.type}`;
+        div.className = `node ${node.class || node.type}`;
         div.id = node.id;
         div.innerText = node.label;
         div.style.left = node.x + 'px';
@@ -139,10 +148,7 @@
       });
     }
 
-    function render() {
-      renderNodes();
-      drawConnections();
-    }
+    function render() { renderNodes(); drawConnections(); }
 
     document.addEventListener('mousemove', e=>{
       if (dragging) {
@@ -163,38 +169,28 @@
       saveFlow();
     }
 
-    function hideContextMenu(){ contextMenu.style.display='none'; }
-
-    function saveFlow(){
-      localStorage.setItem('nodes',JSON.stringify(nodes));
-      localStorage.setItem('edges',JSON.stringify(edges));
-    }
-
-    function loadFlow(){ location.reload(); }
-
-    // BARU: Reset Canvas
     function resetCanvas(){
       if(confirm('Yakin hapus semua node & koneksi?')){
-        nodes = [];
-        edges = [];
-        localStorage.removeItem('nodes');
-        localStorage.removeItem('edges');
+        nodes = []; edges = [];
+        localStorage.removeItem('nodes'); localStorage.removeItem('edges');
         render();
       }
     }
 
+    function saveFlow(){ localStorage.setItem('nodes',JSON.stringify(nodes)); localStorage.setItem('edges',JSON.stringify(edges)); }
+    function loadFlow(){ location.reload(); }
+
     function exportFlow(){
       const flow = nodes.map(n=>({
         id:n.id,
-        type:n.type==='input'?'inject':n.type==='output'?'debug':'function',
+        type:n.type==='input'?'inject':n.type==='output'?'debug':n.type==='function'?'function':n.type,
         name:n.label,
         x:n.x, y:n.y,
         wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])
       }));
       const a=document.createElement('a');
       a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));
-      a.download='flow-ngemiel.json';
-      a.click();
+      a.download='flow-ngemiel.json'; a.click();
     }
 
     render();
