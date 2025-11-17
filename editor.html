@@ -10,26 +10,39 @@
     #toolbar{padding:12px;background:#d32f2f;color:white;box-shadow:0 2px 10px rgba(0,0,0,.2);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;position:relative}
     button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;background:white;color:#d32f2f;font-size:14px}
     button:hover{background:#ffebee}
-    .dark button{background:#333;color:#fff}.dark button:hover{background:#444}
-    #exportBtn{background:#4caf50;color:white}#resetBtn{background:#d50000;color:white}
-    .mqtt-in{background:#66BB6A;color:white}.mqtt-out{background:#43A047;color:white}.http{background:#7E57C2;color:white}
-    .social{background:#0088cc;color:white}.social.whatsapp{background:#25D366}
-    #canvas{height:80vh;position:relative;background:#fdfdfd;transition:all .3s}.dark #canvas{background:#1e1e1e}
+    .dark button{background:#333;color:#fff}
+    .dark button:hover{background:#444}
+    #exportBtn{background:#4caf50;color:white}
+    #resetBtn{background:#d50000;color:white}
+    .mqtt-in{background:#66BB6A;color:white}
+    .mqtt-out{background:#43A047;color:white}
+    .http{background:#7E57C2;color:white}
+    .social{background:#0088cc;color:white}
+    .social.whatsapp{background:#25D366}
+    #canvas{height:80vh;position:relative;background:#fdfdfd;transition:all .3s}
+    .dark #canvas{background:#1e1e1e}
     .node{position:absolute;width:100px;height:50px;border:2px solid #000;border-radius:8px;text-align:center;line-height:50px;cursor:move;user-select:none;box-shadow:0 3px 8px rgba(0,0,0,.15);font-weight:bold;font-size:13px;color:#000}
     .dark .node{color:#fff;border-color:#444;box-shadow:0 3px 10px rgba(0,0,0,.5)}
-    .node.input{background:#A8E6A1;border-color:#2e7d32}.node.function{background:#B3E5FC;border-color:#01579b}
-    .node.output{background:#FFAB91;border-color:#d84315}.node.mqtt-in{background:#A5D6A7;border-color:#2e7d32}
-    .node.mqtt-out{background:#81C784;border-color:#1b5e20}.node.http{background:#B39DDB;border-color:#512da8}
-    .node.telegram{background:#7FD7FF;border-color:#0088cc}.node.whatsapp{background:#A8E6CF;border-color:#25D366}
-    .dark .node.telegram{background:#0088cc}.dark .node.whatsapp{background:#25D366}
+    .node.input{background:#A8E6A1;border-color:#2e7d32}
+    .node.function{background:#B3E5FC;border-color:#01579b}
+    .node.output{background:#FFAB91;border-color:#d84315}
+    .node.mqtt-in{background:#A5D6A7;border-color:#2e7d32}
+    .node.mqtt-out{background:#81C784;border-color:#1b5e20}
+    .node.http{background:#B39DDB;border-color:#512da8}
+    .node.telegram{background:#7FD7FF;border-color:#0088cc}
+    .node.whatsapp{background:#A8E6CF;border-color:#25D366}
+    .dark .node.telegram{background:#0088cc}
+    .dark .node.whatsapp{background:#25D366}
     .port{width:12px;height:12px;background:#000;border-radius:50%;position:absolute;top:50%;transform:translateY(-50%);cursor:crosshair}
-    .dark .port{background:#fff}.port.in{left:-6px}.port.out{right:-6px}
-    svg.connections path{stroke:#000;stroke-width:3;transition:all .3s}.dark svg.connections path{stroke:#888}
+    .dark .port{background:#fff}
+    svg.connections path{stroke:#000;stroke-width:3;transition:all .3s}
+    .dark svg.connections path{stroke:#888}
     #themeBtn{position:absolute;right:15px;top:12px;background:#333;color:white;padding:8px 12px;font-size:20px;border-radius:50%;cursor:pointer}
     #editModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:10000;align-items:center;justify-content:center}
     .modal-content{background:white;padding:25px;border-radius:12px;width:340px;box-shadow:0 10px 30px rgba(0,0,0,0.4);color:#000}
     .dark .modal-content{background:#333;color:#eee}
     .modal-content input,.modal-content textarea{width:100%;margin:10px 0;padding:10px;border-radius:6px;border:1px solid #ccc;font-family:monospace}
+    .dark .modal-content input{border-color:#555}
     .modal-content button{padding:10px;background:#d32f2f;color:white;border:none;border-radius:6px;cursor:pointer;width:100%;margin:5px 0}
     #contextMenu{position:absolute;background:white;border:2px solid #d32f2f;border-radius:8px;padding:8px;box-shadow:0 4px 15px rgba(0,0,0,.3);z-index:9999;display:none}
     .dark #contextMenu{background:#222;border-color:#d32f2f}
@@ -59,12 +72,10 @@
     <button onclick="deleteNode(currentNodeId)">Delete Node</button>
     <button onclick="hideContextMenu()">Cancel</button>
   </div>
-
-  <!-- Modal Edit Node -->
   <div id="editModal">
     <div class="modal-content">
       <h3>Edit Node</h3>
-      <input id="nodeLabel" placeholder="Label (contoh: BTC Alert)">
+      <input id="nodeLabel" placeholder="Label">
       <textarea id="nodeConfig" rows="8" placeholder='Telegram:\n{"token":"123456:ABC","chatId":"123456789"}\n\nHTTP:\n{"url":"https://indodax.com/api/ticker/btcidr"}'></textarea>
       <button onclick="saveNodeConfig()">Save</button>
       <button onclick="closeEditModal()">Cancel</button>
@@ -77,7 +88,7 @@
     let dragging=null,connecting=null,currentNodeId=null,editingNode=null;
     const canvas=document.getElementById('canvas');
     const svg=document.querySelector('svg.connections');
-    const ctx=document.getElementById('contextMenu');
+    const contextMenu=document.getElementById('contextMenu');
     const editModal=document.getElementById('editModal');
     const themeBtn=document.getElementById('themeBtn');
 
@@ -123,12 +134,12 @@
         // Double-click untuk edit
         div.addEventListener('dblclick', ()=>{editingNode=n; document.getElementById('nodeLabel').value=n.label; document.getElementById('nodeConfig').value=JSON.stringify(n.config||{},null,2); editModal.style.display='flex';});
 
-        // Port In & Out
+        // Port In & Out (buat dulu, baru event)
         const portIn=document.createElement('div'); portIn.className='port in';
         const portOut=document.createElement('div'); portOut.className='port out';
         div.appendChild(portIn); div.appendChild(portOut);
 
-        // Koneksi garis
+        // Event koneksi (setelah port dibuat)
         portOut.addEventListener('mousedown',e=>{e.stopPropagation(); connecting={source:n.id};});
         portIn.addEventListener('mouseup',e=>{
           if(connecting && connecting.source!==n.id){
@@ -138,7 +149,7 @@
           }
         });
 
-        div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;ctx.style.left=e.clientX+'px';ctx.style.top=e.clientY+'px';ctx.style.display='block';});
+        div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;contextMenu.style.left=e.clientX+'px';contextMenu.style.top=e.clientY+'px';contextMenu.style.display='block';});
         div.addEventListener('mousedown',e=>{if(e.button!==0||e.target.classList.contains('port'))return;dragging={node:n,offsetX:e.clientX-n.x,offsetY:e.clientY-n.y};});
         canvas.appendChild(div);
       });
@@ -147,7 +158,7 @@
     function render(){renderNodes();drawConnections();}
     document.addEventListener('mousemove',e=>{if(dragging){dragging.node.x=e.clientX-dragging.offsetX;dragging.node.y=e.clientY-dragging.offsetY;render();saveFlow();}});
     document.addEventListener('mouseup',()=>{dragging=null;connecting=null;});
-    document.addEventListener('click',()=>{ctx.style.display='none';});
+    document.addEventListener('click',()=>{contextMenu.style.display='none';});
 
     function saveNodeConfig(){
       if(!editingNode) return;
@@ -163,7 +174,7 @@
     function saveFlow(){localStorage.setItem('nodes',JSON.stringify(nodes));localStorage.setItem('edges',JSON.stringify(edges));}
     function loadFlow(){location.reload();}
     function exportFlow(){
-      const flow=nodes.map(n=>({id:n.id,type:n.type,name:n.label,x:n.x,y:n.y,config:n.config||{},wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
+      const flow=nodes.map(n=>({id:n.id,type:n.type==='input'?'inject':n.type==='output'?'debug':n.type==='function'?'function':n.type,name:n.label,x:n.x,y:n.y,config:n.config||{},wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
       const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));a.download='flow-ngemiel.json';a.click();
     }
 
