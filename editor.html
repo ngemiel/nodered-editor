@@ -10,14 +10,15 @@
     button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; background: white; color: #d32f2f; }
     button:hover { background: #ffebee; }
     #exportBtn { background: #4caf50; color: white; }
-    #canvas { height: 80vh; border: 2px dashed #ccc; position: relative; background: white; overflow: auto; }
-    .node { position: absolute; width: 100px; height: 50px; background: #ADD8E6; border: 1px solid #000; border-radius: 5px; text-align: center; line-height: 50px; cursor: move; user-select: none; z-index: 10; }
+    #canvas { height: 80vh; position: relative; background: white; overflow: hidden; }
+    .node { position: absolute; width: 120px; height: 60px; background: #ADD8E6; border: 2px solid #000; border-radius: 8px; text-align: center; line-height: 60px; cursor: move; user-select: none; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
     .node.input { background: #90EE90; }
-    .node.function { background: #ADD8E6; }
+    .node.function { background: #87CEFA; }
     .node.output { background: #FFB6C1; }
-    .port { width: 10px; height: 10px; background: #000; border-radius: 50%; position: absolute; }
-    .port.left { left: -5px; top: 50%; transform: translateY(-50%); }
-    .port.right { right: -5px; top: 50%; transform: translateY(-50%); }
+    .port { width: 14px; height: 14px; background: #000; border-radius: 50%; position: absolute; top: 50%; transform: translateY(-50%); cursor: crosshair; }
+    .port.out { right: -7px; }
+    .port.in { left: -7px; }
+    .line { position: absolute; height: 3px; background: #000; transform-origin: 0 0; pointer-events: none; }
     a { color: white; text-decoration: underline; }
   </style>
 </head>
@@ -30,142 +31,139 @@
     <button onclick="saveFlow()">Simpan</button>
     <button onclick="loadFlow()">Muat</button>
     <button id="exportBtn" onclick="exportFlow()">Export JSON</button>
-    <input type="file" id="importFile" accept=".json" onchange="importFlow(event)" style="display:none;">
-    <button onclick="document.getElementById('importFile').click()">Import JSON</button>
-    <a href="/" style="margin-left:20px;">← Kembali ke JSON Editor</a>
+    <a href="/" style="margin-left:20px;">← JSON Editor</a>
   </div>
   <div id="canvas"></div>
 
   <script>
     let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
     let edges = JSON.parse(localStorage.getItem('edges') || '[]');
+    let dragging = null;
+    let connecting = null;
 
     function addNode(type) {
-      const id = 'node-' + Date.now();
       const node = {
-        id: id,
+        id: 'node-' + Date.now(),
         type: type,
-        x: Math.random() * 400 + 100,
+        x: Math.random() * 500 + 100,
         y: Math.random() * 300 + 100,
-        label: type.charAt(0).toUpperCase() + type.slice(1) + ' Node'
+        label: type === 'input' ? 'Inject' : type === 'output' ? 'Debug' : 'Function'
       };
       nodes.push(node);
       render();
       saveFlow();
-      console.log('Node ' + type + ' ditambahkan!'); // Cek console F12 kalau gak ada alert
     }
 
     function render() {
       const canvas = document.getElementById('canvas');
       canvas.innerHTML = '';
+      
+      // Render edges dulu (biar di bawah node)
+      edges.forEach(edge => {
+        const line = document.createElement('div');
+        line.className = 'line';
+        const dx = edge.targetX - edge.sourceX;
+        const dy = edge.targetY - edge.sourceY;
+        const length = Math.sqrt(dx*dx + dy*dy);
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        line.style.left = edge.sourceX + 'px';
+        line.style.top = edge.sourceY + 'px';
+        line.style.width = length + 'px';
+        line.style.transform = `rotate(${angle}deg)`;
+        canvas.appendChild(line);
+      });
+
+      // Render nodes
       nodes.forEach(node => {
         const div = document.createElement('div');
         div.className = 'node ' + node.type;
         div.id = node.id;
-        div.innerText = node.label.substring(0, 10) + '...'; // Short label
+        div.innerHTML = `<div style="font-weight:bold;">${node.label}</div>`;
         div.style.left = node.x + 'px';
         div.style.top = node.y + 'px';
 
-        // Port left & right
-        const leftPort = document.createElement('div');
-        leftPort.className = 'port left';
-        const rightPort = document.createElement('div');
-        rightPort.className = 'port right';
-        div.appendChild(leftPort);
-        div.appendChild(rightPort);
+        // Ports
+        const portOut = document.createElement('div');
+        portOut.className = 'port out';
+        const portIn = document.createElement('div');
+        portIn.className = 'port in';
+        div.appendChild(portOut);
+        div.appendChild(portIn);
 
-        // Drag functionality
-        let isDragging = false;
-        let startX, startY;
-
-        div.addEventListener('mousedown', (e) => {
-          isDragging = true;
-          startX = e.clientX - node.x;
-          startY = e.clientY - node.y;
-          div.style.zIndex = 100;
-          canvas.style.cursor = 'grabbing';
+        // Drag node
+        div.addEventListener('mousedown', e => {
+          if (e.target.classList.contains('port')) return;
+          dragging = { node, offsetX: e.clientX - node.x, offsetY: e.clientY - node.y };
         });
 
-        document.addEventListener('mousemove', (e) => {
-          if (isDragging) {
-            node.x = e.clientX - startX;
-            node.y = e.clientY - startY;
-            div.style.left = node.x + 'px';
-            div.style.top = node.y + 'px';
-          }
+        // Start connection
+        portOut.addEventListener('mousedown', e => {
+          e.stopPropagation();
+          connecting = { source: node.id, x: node.x + 120 + 7, y: node.y + 30 };
         });
 
-        document.addEventListener('mouseup', (e) => {
-          if (isDragging) {
-            isDragging = false;
-            div.style.zIndex = 10;
-            canvas.style.cursor = 'default';
+        // End connection
+        portIn.addEventListener('mouseup', e => {
+          if (connecting && connecting.source !== node.id) {
+            edges.push({
+              source: connecting.source,
+              target: node.id,
+              sourceX: connecting.x,
+              sourceY: connecting.y,
+              targetX: node.x - 7,
+              targetY: node.y + 30
+            });
+            connecting = null;
+            render();
             saveFlow();
           }
         });
 
         canvas.appendChild(div);
       });
-      // Render lines if edges exist (simple)
-      edges.forEach(edge => {
-        const line = document.createElement('div');
-        line.style.position = 'absolute';
-        line.style.borderTop = '2px solid #000';
-        line.style.left = edge.startX + 'px';
-        line.style.top = edge.startY + 'px';
-        line.style.width = edge.length + 'px';
-        line.style.height = '0';
-        line.style.transform = 'rotate(' + edge.angle + 'deg)';
-        canvas.appendChild(line);
-      });
     }
+
+    // Global mouse move & up
+    document.addEventListener('mousemove', e => {
+      if (dragging) {
+        dragging.node.x = e.clientX - dragging.offsetX;
+        dragging.node.y = e.clientY - dragging.offsetY;
+        render();
+        saveFlow();
+      }
+      if (connecting) {
+        connecting.x = e.clientX;
+        connecting.y = e.clientY;
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      dragging = null;
+      connecting = null;
+    });
 
     function saveFlow() {
       localStorage.setItem('nodes', JSON.stringify(nodes));
       localStorage.setItem('edges', JSON.stringify(edges));
     }
 
-    function loadFlow() {
-      location.reload();
-    }
+    function loadFlow() { location.reload(); }
 
     function exportFlow() {
       const flow = nodes.map(n => ({
         id: n.id,
-        type: n.type,
+        type: n.type === 'input' ? 'inject' : n.type === 'output' ? 'debug' : 'function',
         name: n.label,
-        x: n.x,
-        y: n.y,
-        wires: [] // Placeholder for connections
+        x: n.x, y: n.y,
+        wires: edges.filter(e => e.source === n.id).map(e => [e.target])
       }));
-      const json = JSON.stringify(flow, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(flow, null, 2)], {type: 'application/json'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'flow-ngemiel.json';
-      a.click();
-      URL.revokeObjectURL(url);
-      console.log('Export done!');
+      a.href = url; a.download = 'flow-ngemiel.json'; a.click();
     }
 
-    function importFlow(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          nodes = JSON.parse(e.target.result);
-          render();
-          console.log('Import done!');
-        } catch (err) {
-          console.error('Import error:', err);
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // Initial load
+    // Start
     render();
   </script>
 </body>
