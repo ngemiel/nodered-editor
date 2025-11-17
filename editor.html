@@ -76,4 +76,100 @@
     const canvas = document.getElementById('canvas');
     const svg = document.querySelector('svg.connections');
     const contextMenu = document.getElementById('contextMenu');
-    const editModal = document
+    const editModal = document.getElementById('editModal');
+    const themeBtn = document.getElementById('themeBtn');
+
+    if(localStorage.getItem('theme')==='dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+      document.body.classList.add('dark'); themeBtn.textContent='Light Mode';
+    }
+    function toggleTheme(){
+      document.body.classList.toggle('dark');
+      const isDark = document.body.classList.contains('dark');
+      themeBtn.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+      localStorage.setItem('theme', isDark?'dark':'light');
+    }
+
+    const labels = {input:'Inject',function:'Function',output:'Debug','mqtt-in':'MQTT In','mqtt-out':'MQTT Out',http:'HTTP Req',telegram:'Telegram',whatsapp:'WhatsApp'};
+
+    function addNode(t){
+      nodes.push({id:'n'+Date.now(),type:t,x:150+Math.random()*600,y:100+Math.random()*300,label:labels[t],config:{}});
+      render(); saveFlow();
+    }
+
+    function drawConnections(){
+      svg.innerHTML='';
+      edges.forEach(e=>{
+        const s=nodes.find(n=>n.id===e.source);
+        const d=nodes.find(n=>n.id===e.target);
+        if(!s||!d) return;
+        const x1=s.x+106, y1=s.y+25, x2=d.x-6, y2=d.y+25;
+        const c=Math.abs(x2-x1)*0.5;
+        const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+        p.setAttribute('d',`M${x1},${y1} C${x1+c},${y1} ${x2-c},${y2} ${x2},${y2}`);
+        svg.appendChild(p);
+      });
+    }
+
+    function renderNodes(){
+      document.querySelectorAll('.node').forEach(n=>n.remove());
+      nodes.forEach(n=>{
+        const div=document.createElement('div');
+        div.className=`node ${n.type}`; div.id=n.id; div.innerText=n.label;
+        div.style.left=n.x+'px'; div.style.top=n.y+'px';
+        div.addEventListener('dblclick', ()=>editNode(n.id));
+
+        const portIn=document.createElement('div'); portIn.className='port in';
+        const portOut=document.createElement('div'); portOut.className='port out';
+        div.appendChild(portIn); div.appendChild(portOut);
+
+        // Pastikan port sudah ada sebelum querySelector
+        portOut.addEventListener('mousedown', e=>{e.stopPropagation(); connecting={source:n.id};});
+        portIn.addEventListener('mouseup', e=>{
+          if(connecting && connecting.source!==n.id){
+            edges=edges.filter(x=>!(x.source===connecting.source && x.target===n.id));
+            edges.push({source:connecting.source, target:n.id});
+            connecting=null; render(); saveFlow();
+          }
+        });
+
+        div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;contextMenu.style.left=e.clientX+'px';contextMenu.style.top=e.clientY+'px';contextMenu.style.display='block';});
+        div.addEventListener('mousedown',e=>{if(e.button!==0||e.target.classList.contains('port'))return;dragging={node:n,offsetX:e.clientX-n.x,offsetY:e.clientY-n.y};});
+        canvas.appendChild(div);
+      });
+    }
+
+    function render(){ renderNodes(); drawConnections(); }
+
+    function editNode(id){
+      editingNode=nodes.find(n=>n.id===id);
+      document.getElementById('nodeLabel').value=editingNode.label;
+      document.getElementById('nodeConfig').value=JSON.stringify(editingNode.config||{},null,2);
+      editModal.style.display='flex';
+    }
+    function saveNodeConfig(){
+      editingNode.label=document.getElementById('nodeLabel').value||editingNode.label;
+      try{ editingNode.config=JSON.parse(document.getElementById('nodeConfig').value||'{}'); }
+      catch(e){ alert('Config harus JSON valid!'); return; }
+      closeEditModal(); render(); saveFlow();
+    }
+    function closeEditModal(){ editModal.style.display='none'; editingNode=null; }
+
+    document.addEventListener('mousemove',e=>{if(dragging){dragging.node.x=e.clientX-dragging.offsetX;dragging.node.y=e.clientY-dragging.offsetY;render();saveFlow();}});
+    document.addEventListener('mouseup',()=>{dragging=null;connecting=null;});
+    document.addEventListener('click',()=>{contextMenu.style.display='none';});
+
+    function deleteNode(id){nodes=nodes.filter(n=>n.id!==id);edges=edges.filter(e=>e.source!==id&&e.target!==id);render();saveFlow();}
+    function resetCanvas(){if(confirm('Hapus semua?')){nodes=[];edges=[];localStorage.removeItem('nodes');localStorage.removeItem('edges');render();}}
+    function saveFlow(){localStorage.setItem('nodes',JSON.stringify(nodes));localStorage.setItem('edges',JSON.stringify(edges));}
+    function loadFlow(){location.reload();}
+    function exportFlow(){
+      const flow=nodes.map(n=>({id:n.id,type:n.type,name:n.label,x:n.x,y:n.y,config:n.config,wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));
+      a.download='flow-ngemiel.json';a.click();
+    }
+
+    render();
+  </script>
+</body>
+</html>
