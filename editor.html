@@ -21,7 +21,7 @@
     .social.whatsapp{background:#25D366}
     #canvas{height:80vh;position:relative;background:#fdfdfd;transition:all .3s}
     .dark #canvas{background:#1e1e1e}
-    .node{position:absolute;width:100px;height:50px;border:2px solid #000;border-radius:8px;text-align:center;line-height:50px;cursor:move;user-select:none;box-shadow:0 3px 8px rgba(0,0,0,.15);font-weight:bold;font-size:13px;color:#000;transition:all .2s}
+    .node{position:absolute;width:100px;height:50px;border:2px solid #000;border-radius:8px;text-align:center;line-height:50px;cursor:move;user-select:none;box-shadow:0 3px 8px rgba(0,0,0,.15);font-weight:bold;font-size:13px;color:#000}
     .dark .node{color:#fff;border-color:#444;box-shadow:0 3px 10px rgba(0,0,0,.5)}
     .node.input{background:#A8E6A1;border-color:#2e7d32}
     .node.function{background:#B3E5FC;border-color:#01579b}
@@ -38,11 +38,11 @@
     svg.connections path{stroke:#000;stroke-width:3;transition:all .3s}
     .dark svg.connections path{stroke:#888}
     #themeBtn{position:absolute;right:15px;top:12px;background:#333;color:white;padding:8px 12px;font-size:20px;border-radius:50%;cursor:pointer}
-    #editModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;z-index:10000}
-    .modal-content{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:10px;width:300px;max-width:90%;box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+    #editModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:10000;align-items:center;justify-content:center}
+    .modal-content{background:white;padding:25px;border-radius:12px;width:340px;box-shadow:0 10px 30px rgba(0,0,0,0.4)}
     .dark .modal-content{background:#333;color:#eee}
-    .modal-content input, .modal-content button{width:100%;margin:10px 0;padding:10px;border:1px solid #ddd;border-radius:5px}
-    .dark .modal-content input{border-color:#555}
+    .modal-content input,.modal-content textarea{width:100%;margin:10px 0;padding:10px;border-radius:6px;border:1px solid #ccc;font-family:monospace}
+    .modal-content button{padding:10px;background:#d32f2f;color:white;border:none;border-radius:6px;cursor:pointer;width:100%;margin:5px 0}
     #contextMenu{position:absolute;background:white;border:2px solid #d32f2f;border-radius:8px;padding:8px;box-shadow:0 4px 15px rgba(0,0,0,.3);z-index:9999;display:none}
     .dark #contextMenu{background:#222;border-color:#d32f2f}
     a{color:white;text-decoration:underline;font-size:14px}
@@ -64,30 +64,29 @@
     <button id="exportBtn" onclick="exportFlow()">Export</button>
     <button id="resetBtn" onclick="resetCanvas()">Reset</button>
     <a href="/">← JSON Editor</a>
-    <div id="themeBtn" onclick="toggleTheme()">🌙</div>
+    <div id="themeBtn" onclick="toggleTheme()">Dark Mode</div>
   </div>
   <div id="canvas"><svg class="connections"></svg></div>
   <div id="contextMenu">
     <button onclick="deleteNode(currentNodeId)">Delete Node</button>
     <button onclick="hideContextMenu()">Cancel</button>
   </div>
+
+  <!-- Modal Edit Node -->
   <div id="editModal">
     <div class="modal-content">
       <h3>Edit Node</h3>
-      <input id="nodeLabel" placeholder="Label">
-      <input id="nodeConfig" placeholder="Config (JSON)">
+      <input id="nodeLabel" placeholder="Label (contoh: BTC Alert)">
+      <textarea id="nodeConfig" rows="8" placeholder='Contoh Telegram:\n{\n  "token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",\n  "chatId": "123456789"\n}\n\nContoh HTTP:\n{"url": "https://indodax.com/api/ticker/btcidr"}'></textarea>
       <button onclick="saveNodeConfig()">Save</button>
       <button onclick="closeEditModal()">Cancel</button>
     </div>
   </div>
 
   <script>
-    let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
-    let edges = JSON.parse(localStorage.getItem('edges') || '[]');
-    let dragging = null;
-    let connecting = null;
-    let currentNodeId = null;
-    let editingNode = null;
+    let nodes = JSON.parse(localStorage.getItem('nodes')||'[]');
+    let edges = JSON.parse(localStorage.getItem('edges')||'[]');
+    let dragging = null, connecting = null, currentNodeId = null, editingNode = null;
     const canvas = document.getElementById('canvas');
     const svg = document.querySelector('svg.connections');
     const contextMenu = document.getElementById('contextMenu');
@@ -95,177 +94,94 @@
     const themeBtn = document.getElementById('themeBtn');
 
     // Dark Mode
-    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.body.classList.add('dark');
-      themeBtn.textContent = '☀️';
+    if(localStorage.getItem('theme')==='dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+      document.body.classList.add('dark'); themeBtn.textContent='Light Mode';
     }
-    function toggleTheme() {
+    function toggleTheme(){
       document.body.classList.toggle('dark');
       const isDark = document.body.classList.contains('dark');
-      themeBtn.textContent = isDark ? '☀️' : '🌙';
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      themeBtn.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+      localStorage.setItem('theme', isDark?'dark':'light');
     }
 
-    const labels = { input: 'Inject', function: 'Function', output: 'Debug', 'mqtt-in': 'MQTT In', 'mqtt-out': 'MQTT Out', http: 'HTTP Req', telegram: 'Telegram', whatsapp: 'WhatsApp' };
+    const labels = {input:'Inject',function:'Function',output:'Debug','mqtt-in':'MQTT In','mqtt-out':'MQTT Out',http:'HTTP Req',telegram:'Telegram',whatsapp:'WhatsApp'};
 
-    function addNode(type) {
-      nodes.push({
-        id: 'n' + Date.now(),
-        type,
-        x: 150 + Math.random() * 600,
-        y: 100 + Math.random() * 300,
-        label: labels[type],
-        config: {} // Tempat simpan token, URL, dll
-      });
-      render();
-      saveFlow();
+    function addNode(t){
+      nodes.push({id:'n'+Date.now(),type:t,x:150+Math.random()*600,y:100+Math.random()*300,label:labels[t],config:{}});
+      render(); saveFlow();
     }
 
-    function drawConnections() {
-      svg.innerHTML = '';
-      edges.forEach(edge => {
-        const src = nodes.find(n => n.id === edge.source);
-        const dst = nodes.find(n => n.id === edge.target);
-        if (!src || !dst) return;
-        const x1 = src.x + 106, y1 = src.y + 25;
-        const x2 = dst.x - 6, y2 = dst.y + 25;
-        const curve = Math.abs(x2 - x1) * 0.5;
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M${x1},${y1} C${x1+curve},${y1} ${x2-curve},${y2} ${x2},${y2}`);
-        svg.appendChild(path);
+    function drawConnections(){
+      svg.innerHTML='';
+      edges.forEach(e=>{
+        const s=nodes.find(n=>n.id===e.source);
+        const d=nodes.find(n=>n.id===e.target);
+        if(!s||!d) return;
+        const x1=s.x+106, y1=s.y+25, x2=d.x-6, y2=d.y+25;
+        const c=Math.abs(x2-x1)*0.5;
+        const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+        p.setAttribute('d',`M${x1},${y1} C${x1+c},${y1} ${x2-c},${y2} ${x2},${y2}`);
+        svg.appendChild(p);
       });
     }
 
-    function renderNodes() {
-      document.querySelectorAll('.node').forEach(n => n.remove());
-      nodes.forEach(node => {
-        const div = document.createElement('div');
-        div.className = `node ${node.type}`;
-        div.id = node.id;
-        div.innerText = node.label;
-        div.style.left = node.x + 'px';
-        div.style.top = node.y + 'px';
-        div.addEventListener('dblclick', () => editNode(node.id)); // BARU: Double-click edit
+    function renderNodes(){
+      document.querySelectorAll('.node').forEach(n=>n.remove());
+      nodes.forEach(n=>{
+        const div=document.createElement('div');
+        div.className=`node ${n.type}`; div.id=n.id; div.innerText=n.label;
+        div.style.left=n.x+'px'; div.style.top=n.y+'px';
+        div.addEventListener('dblclick', ()=>editNode(n.id));
 
-        const portIn = document.createElement('div');
-        portIn.className = 'port in';
-        const portOut = document.createElement('div');
-        portOut.className = 'port out';
-        div.appendChild(portIn);
-        div.appendChild(portOut);
-
-        div.addEventListener('contextmenu', e => {
-          e.preventDefault();
-          currentNodeId = node.id;
-          contextMenu.style.left = e.clientX + 'px';
-          contextMenu.style.top = e.clientY + 'px';
-          contextMenu.style.display = 'block';
+        ['in','out'].forEach(p=>{
+          const port=document.createElement('div');
+          port.className=`port ${p}`;
+          div.appendChild(port);
         });
 
-        div.addEventListener('mousedown', e => {
-          if (e.button !== 0 || e.target.classList.contains('port')) return;
-          dragging = { node, offsetX: e.clientX - node.x, offsetY: e.clientY - node.y };
-        });
-
-        portOut.addEventListener('mousedown', e => {
-          e.stopPropagation();
-          connecting = { source: node.id };
-        });
-
-        portIn.addEventListener('mouseup', e => {
-          if (connecting && connecting.source !== node.id) {
-            edges = edges.filter(x => !(x.source === connecting.source && x.target === node.id));
-            edges.push({ source: connecting.source, target: node.id });
-            connecting = null;
-            render();
-            saveFlow();
+        div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;contextMenu.style.left=e.clientX+'px';contextMenu.style.top=e.clientY+'px';contextMenu.style.display='block';});
+        div.addEventListener('mousedown',e=>{if(e.button!==0||e.target.classList.contains('port'))return;dragging={node:n,offsetX:e.clientX-n.x,offsetY:e.clientY-n.y};});
+        div.querySelector('.port.out').addEventListener('mousedown',e=>{e.stopPropagation();connecting={source:n.id};});
+        div.querySelector('.port.in').addEventListener('mouseup',e=>{
+          if(connecting&&connecting.source!==n.id){
+            edges=edges.filter(x=>!(x.source===connecting.source&&x.target===n.id));
+            edges.push({source:connecting.source,target:n.id});
+            connecting=null; render(); saveFlow();
           }
         });
-
         canvas.appendChild(div);
       });
     }
 
-    function render() {
-      renderNodes();
-      drawConnections();
-    }
+    function render(){ renderNodes(); drawConnections(); } // INI YANG TADI LUPA!
 
-    // BARU: Edit Node (double-click)
-    function editNode(id) {
-      editingNode = nodes.find(n => n.id === id);
-      if (!editingNode) return;
+    function editNode(id){
+      editingNode = nodes.find(n=>n.id===id);
       document.getElementById('nodeLabel').value = editingNode.label;
-      document.getElementById('nodeConfig').value = JSON.stringify(editingNode.config, null, 2);
-      editModal.style.display = 'block';
+      document.getElementById('nodeConfig').value = JSON.stringify(editingNode.config||{},null,2);
+      editModal.style.display='flex';
     }
-
-    function saveNodeConfig() {
-      editingNode.label = document.getElementById('nodeLabel').value;
-      try {
-        editingNode.config = JSON.parse(document.getElementById('nodeConfig').value || '{}');
-      } catch (e) {
-        alert('Config harus JSON valid!');
-        return;
-      }
-      closeEditModal();
-      render();
-      saveFlow();
+    function saveNodeConfig(){
+      editingNode.label = document.getElementById('nodeLabel').value || editingNode.label;
+      try{ editingNode.config = JSON.parse(document.getElementById('nodeConfig').value||'{}'); }
+      catch(e){ alert('Config harus JSON valid!'); return; }
+      closeEditModal(); render(); saveFlow();
     }
+    function closeEditModal(){ editModal.style.display='none'; editingNode=null; }
 
-    function closeEditModal() {
-      editModal.style.display = 'none';
-      editingNode = null;
-    }
+    document.addEventListener('mousemove',e=>{if(dragging){dragging.node.x=e.clientX-dragging.offsetX;dragging.node.y=e.clientY-dragging.offsetY;render();saveFlow();}});
+    document.addEventListener('mouseup',()=>{dragging=null;connecting=null;});
+    document.addEventListener('click',()=>{contextMenu.style.display='none';});
 
-    document.addEventListener('mousemove', e => {
-      if (dragging) {
-        dragging.node.x = e.clientX - dragging.offsetX;
-        dragging.node.y = e.clientY - dragging.offsetY;
-        render();
-        saveFlow();
-      }
-    });
-
-    document.addEventListener('mouseup', () => { dragging = null; connecting = null; });
-    document.addEventListener('click', () => { contextMenu.style.display = 'none'; });
-
-    function deleteNode(id) {
-      nodes = nodes.filter(n => n.id !== id);
-      edges = edges.filter(e => e.source !== id && e.target !== id);
-      contextMenu.style.display = 'none';
-      render();
-      saveFlow();
-    }
-
-    function resetCanvas() {
-      if (confirm('Hapus semua?')) {
-        nodes = []; edges = [];
-        localStorage.removeItem('nodes'); localStorage.removeItem('edges');
-        render();
-      }
-    }
-
-    function saveFlow() {
-      localStorage.setItem('nodes', JSON.stringify(nodes));
-      localStorage.setItem('edges', JSON.stringify(edges));
-    }
-
-    function loadFlow() { location.reload(); }
-
-    function exportFlow() {
-      const flow = nodes.map(n => ({
-        id: n.id,
-        type: n.type === 'input' ? 'inject' : n.type === 'output' ? 'debug' : n.type === 'function' ? 'function' : n.type,
-        name: n.label,
-        x: n.x, y: n.y,
-        config: n.config, // Include config (token, URL, dll)
-        wires: edges.filter(e => e.source === n.id).map(e => [e.target])
-      }));
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([JSON.stringify(flow, null, 2)], { type: 'application/json' }));
-      a.download = 'flow-ngemiel.json';
-      a.click();
+    function deleteNode(id){nodes=nodes.filter(n=>n.id!==id);edges=edges.filter(e=>e.source!==id&&e.target!==id);render();saveFlow();}
+    function resetCanvas(){if(confirm('Hapus semua?')){nodes=[];edges=[];localStorage.removeItem('nodes');localStorage.removeItem('edges');render();}}
+    function saveFlow(){localStorage.setItem('nodes',JSON.stringify(nodes));localStorage.setItem('edges',JSON.stringify(edges));}
+    function loadFlow(){location.reload();}
+    function exportFlow(){
+      const flow=nodes.map(n=>({id:n.id,type:n.type,name:n.label,x:n.x,y:n.y,config:n.config,wires:edges.filter(e=>e.source===n.id).map(e=>[e.target])}));
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)],{type:'application/json'}));
+      a.download='flow-ngemiel.json';a.click();
     }
 
     render();
