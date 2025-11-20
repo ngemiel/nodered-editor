@@ -266,6 +266,7 @@
     <button class="social whatsapp" onclick="addNode('whatsapp')">WhatsApp</button>
     <button onclick="saveFlow()">Simpan</button>
     <button onclick="loadFlow()">Muat</button>
+    <button onclick="deployFlow()" style="background:#ff9800;color:white">Deploy</button>
     <button id="exportBtn" onclick="exportFlow()">Export</button>
     <button id="resetBtn" onclick="resetCanvas()">Reset</button>
     <a href="/">← JSON Editor</a>
@@ -313,21 +314,14 @@
         const x1 = s.x + 106, y1 = s.y + 25, x2 = d.x - 6, y2 = d.y + 25;
         const c = Math.abs(x2 - x1) * 0.5;
         const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        p.setAttribute('d', `M${x1},${y1} C${x1 + c},${y1} ${x2 - c},${y2} ${x2},${y2}`);
-        svg.appendChild(p);
-      });
-    }
 
-    function renderNodes() {
-      document.querySelectorAll('.node').forEach(n => n.remove());
-      nodes.forEach(n => {
-        const div = document.createElement('div');
-        div.className = `node ${n.type}`; div.id = n.id; div.innerText = n.label;
-        div.style.left = n.x + 'px'; div.style.top = n.y + 'px';
-
-        div.addEventListener('dblclick', (e) => { e.stopPropagation(); editingNode = n; document.getElementById('editLabel').value = n.label; document.getElementById('editConfig').value = JSON.stringify(n.config || {}, null, 2); editModal.style.display = 'flex'; });
-
-        ['in', 'out'].forEach(p => { const port = document.createElement('div'); port.className = `port ${p}`; div.appendChild(port); });
+        if (n.type === 'input') {
+          const playBtn = document.createElement('button');
+          playBtn.innerText = '▶';
+          playBtn.style.cssText = 'position:absolute;right:5px;top:5px;padding:2px 6px;font-size:10px;background:#4caf50;color:white;border:none;border-radius:4px;cursor:pointer;z-index:10';
+          playBtn.onclick = (e) => { e.stopPropagation(); triggerNode(n.id); };
+          div.appendChild(playBtn);
+        }
 
         div.addEventListener('contextmenu', e => { e.preventDefault(); currentNodeId = n.id; ctx.style.left = e.clientX + 'px'; ctx.style.top = e.clientY + 'px'; ctx.style.display = 'block'; });
         div.addEventListener('mousedown', e => { if (e.button !== 0 || e.target.classList.contains('port')) return; dragging = { node: n, offsetX: e.clientX - n.x, offsetY: e.clientY - n.y }; });
@@ -382,6 +376,26 @@
     function exportFlow() {
       const flow = nodes.map(n => ({ id: n.id, type: n.type, name: n.label, x: n.x, y: n.y, config: n.config || {}, wires: edges.filter(e => e.source === n.id).map(e => [e.target]) }));
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(flow, null, 2)], { type: 'application/json' })); a.download = 'nodeblu-flow.json'; a.click();
+    }
+
+    async function deployFlow() {
+      const flowData = { nodes, edges };
+      try {
+        const res = await fetch('/deploy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(flowData)
+        });
+        if (res.ok) alert('Flow deployed to server!');
+        else alert('Deploy failed');
+      } catch (e) { alert('Error deploying: ' + e); }
+    }
+
+    async function triggerNode(id) {
+      try {
+        await fetch('/trigger/' + id, { method: 'POST' });
+        alert('Node triggered!');
+      } catch (e) { alert('Error triggering node: ' + e); }
     }
 
     render();
