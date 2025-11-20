@@ -1,97 +1,57 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NodeBlu – Visual Flow Editor by Ngemiel</title>
-  <style>
-    body { margin:0; font-family:-apple-system,Arial,sans-serif; background:#f0f0f0; overflow:hidden; }
-    #toolbar { padding:12px; background:#0066ff; color:white; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.2);
-      display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px; position:relative; }
-    button { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold;
-      background:white; color:#0066ff; font-size:14px; }
-    button:hover { background:#e3f2fd; }
-    #exportBtn { background:#4caf50; color:white; }
-    #resetBtn { background:#d50000; color:white; }
-    .mqtt-in { background:#66BB6A !important; color:white !important; }
-    .mqtt-out { background:#43A047 !important; color:white !important; }
-    .http { background:#7E57C2 !important; color:white !important; }
-    .social { background:#0088cc !important; color:white !important; }
-    .social.whatsapp { background:#25D366 !important; }
-
-    #canvas { height:80vh; position:relative; background:#fdfdfd; overflow:hidden; }
-    .node { position:absolute; width:120px; height:60px; background:#fff; border:2px solid #000;
-      border-radius:8px; text-align:center; line-height:60px; cursor:move; user-select:none;
-      box-shadow:0 3px 8px rgba(0,0,0,0.15); font-weight:bold; font-size:13px; color:#000; }
-    .node.input { background:#A8E6A1; border-color:#2e7d32; }
-    .node.function { background:#B3E5FC; border-color:#01579b; }
-    .node.output { background:#FFAB91; border-color:#d84315; }
-    .node.mqtt-in { background:#A5D6A7; border-color:#2e7d32; }
-    .node.mqtt-out { background:#81C784; border-color:#1b5e20; }
-    .node.http { background:#B39DDB; border-color:#512da8; }
-    .node.telegram { background:#7FD7FF; border-color:#0088cc; }
-    .node.whatsapp { background:#A8E6CF; border-color:#25D366; }
-
-    .port { width:14px; height:14px; background:#000; border-radius:50%; position:absolute;
-      top:50%; transform:translateY(-50%); cursor:crosshair; }
-    .port.in { left:-7px; }
-    .port.out { right:-7px; }
-
-    svg.connections { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
-    svg.connections path { fill:none; stroke:#0066ff; stroke-width:4; }
-
-    #contextMenu { position:absolute; background:white; border:2px solid #0066ff; border-radius:8px;
-      padding:8px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:9999; display:none; font-size:14px; }
-    #contextMenu button { background:#0066ff; color:white; width:100%; margin:4px 0; padding:8px; }
-
-    #editModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);
-      display:none; z-index:10000; align-items:center; justify-content:center; }
-    #editModal .modal-content { background:white; padding:25px; border-radius:12px; width:340px;
-      max-width:90%; box-shadow:0 10px 30px rgba(0,0,0,0.4); }
-    #editModal input, #editModal textarea, #editModal select { width:100%; margin:10px 0; padding:12px;
-      border:1px solid #ccc; border-radius:6px; font-family:monospace; font-size:13px; }
-    #editModal button { padding:12px; background:#0066ff; color:white; border:none; border-radius:6px;
-      cursor:pointer; margin:5px 0; width:100%; font-weight:bold; }
-    #editModal button[style*="d50000"] { background:#d50000; }
-
-    #footer { position:absolute; bottom:8px; left:12px; font-size:11px; color:#666; }
-    a { color:white; text-decoration:underline; font-size:14px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NodeBlu Fonnte Edition – Langsung Kirim WA</title>
+<style>
+  body{margin:0;font-family:-apple-system,Arial,sans-serif;background:#f0f0f0;overflow:hidden}
+  #toolbar{padding:12px;background:#25D366;color:white;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.2);
+    display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px}
+  button{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;
+    background:white;color:#25D366;font-size:14px}
+  button:hover{background:#e8f5e9}
+  #fonnteTokenBtn{background:#ff9800;color:white}
+  #canvas{height:80vh;position:relative;background:#fdfdfd;overflow:hidden}
+  .node{position:absolute;width:130px;height:70px;border:2px solid #000;border-radius:8px;
+    text-align:center;line-height:70px;cursor:move;user-select:none;box-shadow:0 3px 8px rgba(0,0,0,0.15);
+    font-weight:bold;font-size:13px;color:#000}
+  .node.input{background:#A8E6CF;border-color:#1b5e20}
+  .node.whatsapp{background:#A8E6CF;border-color:#25D366}
+  .port{width:16px;height:16px;background:#000;border-radius:50%;position:absolute;
+    top:50%;transform:translateY(-50%)}
+  .port.in{left:-8px}.port.out{right:-8px}
+  svg.connections{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+  svg.connections path{fill:none;stroke:#25D366;stroke-width:5}
+  #editModal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);
+    display:none;z-index:10000;align-items:center;justify-content:center}
+  #editModal .modal-content{background:white;padding:25px;border-radius:12px;width:340px;max-width:90%;
+    box-shadow:0 10px 30px rgba(0,0,0,0.4)}
+  #editModal input,#editModal textarea{width:100%;margin:10px 0;padding:12px;border:1px solid #ccc;
+    border-radius:6px;font-family:monospace;font-size:13px}
+  #editModal button{padding:12px;background:#25D366;color:white;border:none;border-radius:6px;
+    cursor:pointer;margin:5px 0;width:100%;font-weight:bold}
+</style>
 </head>
 <body>
 
 <div id="toolbar">
-  <h2 style="margin:0 10px 0 0;font-size:18px">NodeBlu by Ngemiel</h2>
+  <h2 style="margin:0 10px 0 0;font-size:18px">NodeBlu Fonnte</h2>
   <button onclick="addNode('input')">+ Inject</button>
-  <button onclick="addNode('function')">+ Function</button>
-  <button onclick="addNode('output')">+ Debug</button>
-  <button class="mqtt-in" onclick="addNode('mqtt-in')">MQTT In</button>
-  <button class="mqtt-out" onclick="addNode('mqtt-out')">MQTT Out</button>
-  <button class="http" onclick="addNode('http')">HTTP Req</button>
-  <button class="social" onclick="addNode('telegram')">Telegram</button>
-  <button class="social whatsapp" onclick="addNode('whatsapp')">WhatsApp</button>
+  <button onclick="addNode('whatsapp')">+ WhatsApp</button>
+  <button id="fonnteTokenBtn" onclick="setFonnteToken()">⚙️ Set Token Fonnte</button>
   <button onclick="saveFlow()">Simpan</button>
   <button onclick="loadFlow()">Muat</button>
-  <button onclick="deployFlow()" style="background:#ff9800;color:white">Deploy</button>
-  <button id="exportBtn" onclick="exportFlow()">Export</button>
-  <button id="resetBtn" onclick="resetCanvas()">Reset</button>
-  <a href="/">← JSON Editor</a>
+  <button onclick="resetCanvas()" style="background:#d50000;color:white">Reset</button>
 </div>
 
 <div id="canvas"><svg class="connections"></svg></div>
-<div id="footer">NodeBlu by Ngemiel • based on Cindo Labs • Apache 2.0</div>
-
-<div id="contextMenu">
-  <button onclick="deleteNode(currentNodeId)">Delete Node</button>
-  <button onclick="hideContextMenu()">Cancel</button>
-</div>
 
 <div id="editModal">
   <div class="modal-content">
-    <h3 style="margin-top:0">Edit Node</h3>
-    <input id="editLabel" placeholder="Label Node">
+    <h3>Edit Node</h3>
+    <input id="editLabel" placeholder="Label">
     <div id="dynamicForm"></div>
-    <textarea id="editConfig" placeholder="JSON Config" rows="6" style="display:none"></textarea>
     <div style="display:flex;gap:10px;margin-top:15px">
       <button onclick="saveEdit()">Simpan</button>
       <button onclick="closeEdit()" style="background:#d50000">Batal</button>
@@ -100,274 +60,208 @@
 </div>
 
 <script>
-  let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
-  let edges = JSON.parse(localStorage.getItem('edges') || '[]');
-  let dragging = null, connecting = null, currentNodeId = null, editingNode = null;
+// === DATA ===
+let nodes = JSON.parse(localStorage.getItem('nodes_wa') || '[]');
+let edges = JSON.parse(localStorage.getItem('edges_wa') || '[]');
+let dragging = null, connecting = null, editingNode = null;
+let fonnteToken = localStorage.getItem('fonnte_token') || '';
 
-  const canvas = document.getElementById('canvas');
-  const svg = document.querySelector('svg.connections');
-  const ctxMenu = document.getElementById('contextMenu');
-  const editModal = document.getElementById('editModal');
+// === FUNGSI UTAMA ===
+const canvas = document.getElementById('canvas');
+const svg = document.querySelector('svg.connections');
+const editModal = document.getElementById('editModal');
 
-  const labels = { input: 'Inject', function: 'Function', output: 'Debug', 'mqtt-in': 'MQTT In', 'mqtt-out': 'MQTT Out', http: 'HTTP Req', telegram: 'Telegram', whatsapp: 'WhatsApp' };
+function addNode(type) {
+  const newNode = {
+    id: 'n' + Date.now(),
+    type,
+    x: 100 + Math.random() * 500,
+    y: 100 + Math.random() * 300,
+    label: type === 'input' ? 'Inject' : 'WhatsApp',
+    config: type === 'whatsapp' ? {target: '628xxxxxxxxxx', message: 'Halo dari NodeBlu!'} : {}
+  };
+  nodes.push(newNode);
+  render(); saveFlow();
+}
 
-  function addNode(type) {
-    const newNode = {
-      id: 'n' + Date.now(),
-      type,
-      x: 100 + Math.random() * (canvas.clientWidth - 220),
-      y: 100 + Math.random() * (canvas.clientHeight - 200),
-      label: labels[type],
-      config: {}
-    };
-    nodes.push(newNode);
-    render();
-    saveFlow();
+function createNode(n) {
+  const div = document.createElement('div');
+  div.className = `node ${n.type}`;
+  div.id = n.id;
+  div.innerText = n.label;
+  div.style.left = n.x + 'px';
+  div.style.top = n.y + 'px';
+
+  // Port
+  ['in','out'].forEach(p => {
+    const port = document.createElement('div');
+    port.className = `port ${p}`;
+    div.appendChild(port);
+  });
+
+  // Tombol Trigger (hanya di Inject)
+  if (n.type === 'input') {
+    const btn = document.createElement('button');
+    btn.innerText = '▶';
+    btn.style.cssText = 'position:absolute;right:8px;top:8px;padding:4px 10px;background:#25D366;color:white;border:none;border-radius:50%;font-size:16px;cursor:pointer;z-index:10';
+    btn.onclick = e => { e.stopPropagation(); triggerFlowFrom(n.id); };
+    div.appendChild(btn);
   }
 
-  function createNodeElement(n) {
-    const div = document.createElement('div');
-    div.className = `node ${n.type}`;
-    div.id = n.id;
-    div.innerText = n.label || labels[n.type];
-    div.style.left = n.x + 'px';
-    div.style.top = n.y + 'px';
-
-    // Port In & Out
-    ['in', 'out'].forEach(p => {
-      const port = document.createElement('div');
-      port.className = `port ${p}`;
-      div.appendChild(port);
-    });
-
-    // Play button untuk inject
-    if (n.type === 'input') {
-      const play = document.createElement('button');
-      play.innerText = '▶';
-      play.style.cssText = 'position:absolute;right:5px;top:5px;padding:2px 6px;font-size:10px;background:#4caf50;color:white;border:none;border-radius:4px;cursor:pointer;z-index:10';
-      play.onclick = e => { e.stopPropagation(); triggerNode(n.id); };
-      div.appendChild(play);
+  // Event
+  div.ondblclick = e => { e.stopPropagation(); showEdit(n); };
+  div.oncontextmenu = e => { e.preventDefault(); if(confirm('Hapus node ini?')) deleteNode(n.id); };
+  div.onmousedown = e => {
+    if (e.target.classList.contains('port')) return;
+    dragging = {node:n, ox:e.clientX-n.x, oy:e.clientY-n.y};
+  };
+  div.querySelector('.port.out').onmousedown = e => { e.stopPropagation(); connecting = {source: n.id}; };
+  div.querySelector('.port.in').onmouseup = e => {
+    if (connecting && connecting.source !== n.id) {
+      edges = edges.filter(ed => !(ed.source === connecting.source && ed.target === n.id));
+      edges.push({source: connecting.source, target: n.id});
+      connecting = null; render(); saveFlow();
     }
+  };
+  return div;
+}
 
-    // Event listeners
-    div.addEventListener('dblclick', e => { e.stopPropagation(); showEditModal(n); });
-    div.addEventListener('contextmenu', e => {
-      e.preventDefault();
-      currentNodeId = n.id;
-      ctxMenu.style.left = e.clientX + 'px';
-      ctxMenu.style.top = e.clientY + 'px';
-      ctxMenu.style.display = 'block';
-    });
+function render() {
+  document.querySelectorAll('.node').forEach(el=>el.remove());
+  nodes.forEach(n => canvas.appendChild(createNode(n)));
+  drawLines();
+}
 
-    div.addEventListener('mousedown', e => {
-      if (e.button !== 0 || e.target.classList.contains('port')) return;
-      dragging = { node: n, offsetX: e.clientX - n.x, offsetY: e.clientY - n.y };
-    });
+function drawLines() {
+  svg.innerHTML = '';
+  edges.forEach(e => {
+    const s = nodes.find(x=>x.id===e.source);
+    const t = nodes.find(x=>x.id===e.target);
+    if (!s || !t) return;
+    const x1 = s.x + 138, y1 = s.y + 35;
+    const x2 = t.x - 8, y2 = t.y + 35;
+    const ctrl = Math.abs(x2-x1)*0.5;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${x1},${y1} C${x1+ctrl},${y1} ${x2-ctrl},${y2} ${x2},${y2}`);
+    svg.appendChild(path);
+  });
+}
 
-    // Port out → mulai koneksi
-    div.querySelector('.port.out').addEventListener('mousedown', e => {
-      e.stopPropagation();
-      connecting = { source: n.id };
-    });
-
-    // Port in → akhiri koneksi
-    div.querySelector('.port.in').addEventListener('mouseup', e => {
-      if (connecting && connecting.source !== n.id) {
-        edges = edges.filter(ed => !(ed.source === connecting.source && ed.target === n.id));
-        edges.push({ source: connecting.source, target: n.id });
-        connecting = null;
-        render();
-        saveFlow();
-      }
-    });
-
-    return div;
+// Drag global
+document.onmousemove = e => {
+  if (dragging) {
+    dragging.node.x = e.clientX - dragging.ox;
+    dragging.node.y = e.clientY - dragging.oy;
+    render(); saveFlow();
   }
+};
+document.onmouseup = () => { dragging = null; connecting = null; };
 
-  function renderNodes() {
-    document.querySelectorAll('.node').forEach(el => el.remove());
-    nodes.forEach(n => canvas.appendChild(createNodeElement(n)));
+// === KIRIM WHATSAPP VIA FONNTE ===
+async function sendFonnte(target, message) {
+  if (!fonnteToken) {
+    alert('Token Fonnte belum di-set! Klik tombol ⚙️ Set Token Fonnte dulu.');
+    return false;
   }
+  const url = 'https://api.fonnte.com/send';
+  const body = new FormData();
+  body.append('token', fonnteToken);
+  body.append('target', target.replace(/[^0-9]/g,''));
+  body.append('message', message);
 
-  function drawConnections() {
-    svg.innerHTML = '';
-    edges.forEach(e => {
-      const src = nodes.find(n => n.id === e.source);
-      const dst = nodes.find(n => n.id === e.target);
-      if (!src || !dst) return;
-      const x1 = src.x + 127;  // 120 + 7 (port radius)
-      const y1 = src.y + 30;
-      const x2 = dst.x - 7;
-      const y2 = dst.y + 30;
-      const ctrl = Math.abs(x2 - x1) * 0.5;
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M${x1},${y1} C${x1 + ctrl},${y1} ${x2 - ctrl},${y2} ${x2},${y2}`);
-      svg.appendChild(path);
-    });
-  }
-
-  function render() {
-    renderNodes();
-    drawConnections();
-  }
-
-  // Drag & Connect global
-  document.addEventListener('mousemove', e => {
-    if (dragging) {
-      dragging.node.x = e.clientX - dragging.offsetX;
-      dragging.node.y = e.clientY - dragging.offsetY;
-      render();
-      saveFlow();
+  try {
+    const res = await fetch(url, {method:'POST', body});
+    const json = await res.json();
+    if (json.status === true) {
+      alert('✅ Pesan WhatsApp berhasil dikirim ke ' + target);
+      return true;
+    } else {
+      alert('Gagal kirim: ' + json.reason);
+      return false;
     }
-  });
+  } catch (err) {
+    alert('Error koneksi Fonnte: ' + err.message);
+    return false;
+  }
+}
 
-  document.addEventListener('mouseup', () => {
-    dragging = null;
-    connecting = null;
-  });
+// Jalankan flow dari node Inject
+async function triggerFlowFrom(startId) {
+  const visited = new Set();
+  const queue = [startId];
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#contextMenu')) ctxMenu.style.display = 'none';
-  });
+  while (queue.length) {
+    const id = queue.shift();
+    if (visited.has(id)) continue;
+    visited.add(id);
 
-  // === Edit Modal ===
-  function showEditModal(node) {
-    editingNode = node;
-    document.getElementById('editLabel').value = node.label || '';
-    const form = document.getElementById('dynamicForm');
-    const cfgArea = document.getElementById('editConfig');
-    form.innerHTML = '';
-    cfgArea.style.display = 'none';
-
+    const node = nodes.find(n=>n.id===id);
     if (node.type === 'whatsapp') {
-      form.innerHTML = `
-        <input id="waTarget" placeholder="Nomor WA (628...)" value="${node.config.target || ''}">
-        <textarea id="waMessage" placeholder="Pesan" rows="4">${node.config.message || ''}</textarea>
-        <input id="waToken" placeholder="Fonnte Token (opsional)" value="${node.config, node.config.token || ''}">
-      `;
-    } else if (node.type === 'http') {
-      form.innerHTML = `
-        <input id="httpUrl" placeholder="URL" value="${node.config.url || ''}">
-        <select id="httpMethod">
-          <option value="GET" ${node.config.method==='GET'?'selected':''}>GET</option>
-          <option value="POST" ${node.config.method==='POST'?'selected':''}>POST</option>
-        </select>
-      `;
-    } else {
-      cfgArea.style.display = 'block';
-      cfgArea.value = JSON.stringify(node.config || {}, null, 2);
+      await sendFonnte(node.config.target, node.config.message);
     }
 
-    editModal.style.display = 'flex';
+    edges.filter(e=>e.source===id).forEach(e=>queue.push(e.target));
   }
+}
 
-  function saveEdit() {
-    if (!editingNode) return;
-    editingNode.label = document.getElementById('editLabel').value.trim() || labels[editingNode.type];
+// === EDIT NODE ===
+function showEdit(node) {
+  editingNode = node;
+  document.getElementById('editLabel').value = node.label;
+  const form = document.getElementById('dynamicForm');
+  if (node.type === 'whatsapp') {
+    form.innerHTML = `
+      <input id="waTarget" placeholder="Nomor WA (628xxx)" value="${node.config.target||''}">
+      <textarea id="waMessage" rows="4" placeholder="Pesan">${node.config.message||''}</textarea>
+    `;
+  } else form.innerHTML = '';
+  editModal.style.display = 'flex';
+}
 
-    if (editingNode.type === 'whatsapp') {
-      editingNode.config = {
-        target: document.getElementById('waTarget').value,
-        message: document.getElementById('waMessage').value,
-        token: document.getElementById('waToken').value
-      };
-    } else if (editingNode.type === 'http') {
-      editingNode.config = {
-        url: document.getElementById('httpUrl').value,
-        method: document.getElementById('httpMethod').value
-      };
-    } else {
-      try {
-        const raw = document.getElementById('editConfig').value.trim();
-        editingNode.config = raw ? JSON.parse(raw) : {};
-      } catch (err) {
-        alert('JSON config tidak valid!');
-        return;
-      }
-    }
+function saveEdit() {
+  editingNode.label = document.getElementById('editLabel').value || editingNode.label;
+  if (editingNode.type === 'whatsapp') {
+    editingNode.config.target = document.getElementById('waTarget').value;
+    editingNode.config.message = document.getElementById('waMessage').value;
+  }
+  closeEdit(); render(); saveFlow();
+}
 
-    closeEdit();
+function closeEdit() { editModal.style.display = 'none'; }
+
+// === TOKEN FONNTE ===
+function setFonnteToken() {
+  const token = prompt('Masukkan Token Fonnte kamu:\n(dapat dari fonnte.com > API Token)', fonnteToken);
+  if (token) {
+    fonnteToken = token.trim();
+    localStorage.setItem('fonnte_token', fonnteToken);
+    alert('Token Fonnte berhasil disimpan!');
+  }
+}
+
+// === STORAGE ===
+function saveFlow() {
+  localStorage.setItem('nodes_wa', JSON.stringify(nodes));
+  localStorage.setItem('edges_wa', JSON.stringify(edges));
+}
+function loadFlow() { location.reload(); }
+function resetCanvas() {
+  if(confirm('Hapus semua?')) {
+    nodes=[]; edges=[];
+    localStorage.removeItem('nodes_wa');
+    localStorage.removeItem('edges_wa');
     render();
-    saveFlow();
   }
+}
+function deleteNode(id) {
+  nodes = nodes.filter(n=>n.id!==id);
+  edges = edges.filter(e=>e.source!==id && e.target!==id);
+  render(); saveFlow();
+}
 
-  function closeEdit() {
-    editModal.style.display = 'none';
-    editingNode = null;
-  }
-
-  function hideContextMenu() { ctxMenu.style.display = 'none'; }
-  function deleteNode(id) {
-    nodes = nodes.filter(n => n.id !== id);
-    edges = edges.filter(e => e.source !== id && e.target !== id);
-    hideContextMenu();
-    render();
-    saveFlow();
-  }
-
-  function saveFlow() {
-    localStorage.setItem('nodes', JSON.stringify(nodes));
-    localStorage.setItem('edges', JSON.stringify(edges));
-  }
-
-  function loadFlow() { location.reload(); }
-
-  function resetCanvas() {
-    if (confirm('Hapus semua node dan koneksi?')) {
-      nodes = []; edges = [];
-      localStorage.removeItem('nodes');
-      localStorage.removeItem('edges');
-      render();
-    }
-  }
-
-  function exportFlow() {
-    const flow = nodes.map(n => ({
-      id: n.id,
-      type: n.type === 'function' ? 'function' : n.type,
-      name: n.label,
-      x: n.x,
-      y: n.y,
-      config: n.config || {},
-      wires: [edges.filter(e => e.source === n.id).map(e => e.target)]
-    }));
-    const data = JSON.stringify(flow, null, 2);
-    const blob = new Blob([data], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'nodeblu-flow.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function deployFlow() {
-    if (!confirm('Deploy flow ke server? (hanya berfungsi jika ada backend /deploy)')) return;
-    try {
-      const res = await fetch('/deploy', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({nodes, edges})
-      });
-      if (res.ok) alert('Flow berhasil di-deploy!');
-      else alert('Deploy gagal: ' + await res.text());
-    } catch (err) {
-      alert('Tidak dapat terhubung ke server (offline mode). Flow tetap tersimpan di browser.');
-    }
-  }
-
-  async function triggerNode(id) {
-    try {
-      await fetch('/trigger/' + id, {method: 'POST'});
-      alert('Node di-trigger!');
-    } catch (err) {
-      alert('Trigger hanya berfungsi saat terhubung ke server NodeBlu backend.');
-    }
-  }
-
-  // Init
-  render();
+// Init
+render();
+if (!fonnteToken) alert('Jangan lupa klik ⚙️ Set Token Fonnte dulu ya!');
 </script>
 </body>
 </html>
