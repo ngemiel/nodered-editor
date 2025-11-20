@@ -2,28 +2,36 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>NodeBlu – Visual Flow Editor by Ngemiel</title>
   <style>
+    * { touch-action: pan-x pan-y; } /* penting untuk drag di HP */
     body { margin:0; font-family:-apple-system,Arial,sans-serif; background:#f0f0f0; overflow:hidden; }
-    #toolbar { padding:12px; background:#0066ff; color:white; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.2);
-      display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px; }
-    button { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold;
-      background:white; color:#0066ff; font-size:14px; }
-    button:hover { background:#e3f2fd; }
+    #toolbar { 
+      padding:12px 8px; background:#0066ff; color:white; 
+      box-shadow:0 2px 10px rgba(0,0,0,0.2); position:relative; z-index:100;
+      display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px;
+      overflow:visible;
+    }
+    button { 
+      padding:10px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:bold;
+      background:white; color:#0066ff; font-size:14px; min-width:44px; min-height:44px; /* agar mudah diketuk di HP */
+    }
+    button:hover, button:active { background:#e3f2fd; }
     #exportBtn { background:#4caf50; color:white; }
     #resetBtn { background:#d50000; color:white; }
-    .mqtt-in, .mqtt-out, .http, .social { color:white !important; }
-    .mqtt-in { background:#66BB6A !important; }
-    .mqtt-out { background:#43A047 !important; }
-    .http { background:#7E57C2 !important; }
-    .social { background:#0088cc !important; }
+    .mqtt-in { background:#66BB6A !important; color:white !important; }
+    .mqtt-out { background:#43A047 !important; color:white !important; }
+    .http { background:#7E57C2 !important; color:white !important; }
+    .social { background:#0088cc !important; color:white !important; }
     .social.whatsapp { background:#25D366 !important; }
 
-    #canvas { height:80vh; position:relative; background:#fdfdfd; overflow:hidden; }
-    .node { position:absolute; width:120px; height:60px; border:2px solid #000; border-radius:8px;
-      text-align:center; line-height:60px; cursor:move; user-select:none;
-      box-shadow:0 3px 8px rgba(0,0,0,0.15); font-weight:bold; font-size:13px; color:#000; }
+    #canvas { height:calc(100vh - 80px); position:relative; background:#fdfdfd; overflow:hidden; touch-action: none; }
+    .node { 
+      position:absolute; width:120px; height:60px; border:2px solid #000; border-radius:8px;
+      text-align:center; line-height:60px; user-select:none; box-shadow:0 3px 8px rgba(0,0,0,0.15);
+      font-weight:bold; font-size:13px; color:#000; touch-action: none;
+    }
     .node.input { background:#A8E6A1; border-color:#2e7d32; }
     .node.function { background:#B3E5FC; border-color:#01579b; }
     .node.output { background:#FFAB91; border-color:#d84315; }
@@ -33,36 +41,32 @@
     .node.telegram { background:#7FD7FF; border-color:#0088cc; }
     .node.whatsapp { background:#A8E6CF; border-color:#25D366; }
 
-    .port { width:14px; height:14px; background:#000; border-radius:50%; position:absolute;
+    .port { width:16px; height:16px; background:#000; border-radius:50%; position:absolute;
       top:50%; transform:translateY(-50%); cursor:crosshair; }
-    .port.in { left:-7px; }
-    .port.out { right:-7px; }
+    .port.in { left:-8px; }
+    .port.out { right:-8px; }
 
     svg.connections { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
-    svg.connections path { fill:none; stroke:#0066ff; stroke-width:4; }
+    svg.connections path { fill:none; stroke:#0066ff; stroke-width:5; }
 
+    #contextMenu, #editModal { touch-action: auto; }
     #contextMenu { position:absolute; background:white; border:2px solid #0066ff; border-radius:8px;
       padding:8px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:9999; display:none; }
-    #contextMenu button { background:#0066ff; color:white; width:100%; margin:4px 0; padding:8px; }
-
     #editModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7);
       display:none; z-index:10000; align-items:center; justify-content:center; }
-    #editModal .modal-content { background:white; padding:25px; border-radius:12px; width:340px; max-width:90%;
+    #editModal .modal-content { background:white; padding:25px; border-radius:12px; width:90%; max-width:360px;
       box-shadow:0 10px 30px rgba(0,0,0,0.4); }
     #editModal input, #editModal textarea, #editModal select { width:100%; margin:10px 0; padding:12px;
-      border:1px solid #ccc; border-radius:6px; font-family:monospace; font-size:13px; }
+      border:1px solid #ccc; border-radius:6px; font-family:monospace; font-size:14px; box-sizing:border-box; }
     #editModal button { padding:12px; background:#0066ff; color:white; border:none; border-radius:6px;
-      cursor:pointer; margin:5px 0; width:100%; font-weight:bold; }
+      cursor:pointer; margin:5px 0; width:100%; font-weight:bold; min-height:44px; }
     #editModal button[style*="d50000"] { background:#d50000; }
-
-    #footer { position:absolute; bottom:8px; left:12px; font-size:11px; color:#666; }
-    a { color:white; text-decoration:underline; }
   </style>
 </head>
 <body>
 
 <div id="toolbar">
-  <h2 style="margin:0 10px 0 0;font-size:18px">NodeBlu by Ngemiel</h2>
+  <h2 style="margin:0 10px 0 0;font-size:18px;flex-basis:100%;text-align:center;">NodeBlu by Ngemiel</h2>
   <button onclick="addNode('input')">+ Inject</button>
   <button onclick="addNode('function')">+ Function</button>
   <button onclick="addNode('output')">+ Debug</button>
@@ -76,11 +80,9 @@
   <button onclick="deployFlow()" style="background:#ff9800;color:white">Deploy</button>
   <button id="exportBtn" onclick="exportFlow()">Export</button>
   <button id="resetBtn" onclick="resetCanvas()">Reset</button>
-  <a href="/">← JSON Editor</a>
 </div>
 
 <div id="canvas"><svg class="connections"></svg></div>
-<div id="footer">NodeBlu by Ngemiel • based on Cindo Labs • Apache 2.0</div>
 
 <div id="contextMenu">
   <button onclick="deleteNode(currentNodeId)">Delete Node</button>
@@ -116,96 +118,99 @@
     nodes.push({
       id: 'n' + Date.now(),
       type,
-      x: 100 + Math.random() * (canvas.clientWidth - 220),
-      y: 100 + Math.random() * (canvas.clientHeight - 200),
+      x: 50 + Math.random() * (canvas.clientWidth - 170),
+      y: 50 + Math.random() * (canvas.clientHeight - 110),
       label: labels[type],
       config: {}
     });
     render(); saveFlow();
   }
 
-  function createNodeElement(n) {
+  function createNode(n) {
     const div = document.createElement('div');
     div.className = `node ${n.type}`;
     div.id = n.id;
-    div.innerText = n.label;
+    div.textContent = n.label;
     div.style.left = n.x + 'px';
     div.style.top = n.y + 'px';
 
-    ['in', 'out'].forEach(p => {
+    ['in','out'].forEach(p => {
       const port = document.createElement('div');
       port.className = `port ${p}`;
       div.appendChild(port);
     });
 
     if (n.type === 'input') {
-      const play = document.createElement('button');
-      play.innerText = '▶';
-      play.style.cssText = 'position:absolute;right:5px;top:5px;padding:2px 6px;font-size:10px;background:#4caf50;color:white;border:none;border-radius:4px;cursor:pointer;z-index:10';
-      play.onclick = e => { e.stopPropagation(); triggerNode(n.id); };
-      div.appendChild(play);
+      const btn = document.createElement('button');
+      btn.textContent = '▶';
+      btn.style.cssText = 'position:absolute;right:6px;top:6px;padding:4px 8px;font-size:12px;background:#4caf50;color:white;border:none;border-radius:4px;z-index:10';
+      btn.onclick = e => { e.stopPropagation(); triggerNode(n.id); };
+      div.appendChild(btn);
     }
 
-    div.addEventListener('dblclick', e => { e.stopPropagation(); showEditModal(n); });
-    div.addEventListener('contextmenu', e => {
-      e.preventDefault();
-      currentNodeId = n.id;
-      ctxMenu.style.left = e.clientX + 'px';
-      ctxMenu.style.top = e.clientY + 'px';
-      ctxMenu.style.display = 'block';
-    });
-    div.addEventListener('mousedown', e => {
-      if (e.button !== 0 || e.target.classList.contains('port')) return;
-      dragging = { node: n, offsetX: e.clientX - n.x, offsetY: e.clientY - n.y };
-    });
+    div.ondblclick = e => { e.stopPropagation(); showEditModal(n); };
+    div.oncontextmenu = e => { e.preventDefault(); currentNodeId = n.id; ctxMenu.style.left = e.clientX+'px'; ctxMenu.style.top = e.clientY+'px'; ctxMenu.style.display='block'; };
 
-    div.querySelector('.port.out').addEventListener('mousedown', e => { e.stopPropagation(); connecting = { source: n.id }; });
-    div.querySelector('.port.in').addEventListener('mouseup', e => {
+    // Drag dengan mouse & touch
+    div.onmousedown = div.ontouchstart = e => {
+      if (e.target.classList.contains('port')) return;
+      const touch = e.touches ? e.touches[0] : e;
+      dragging = { node: n, ox: touch.clientX - n.x, oy: touch.clientY - n.y };
+      e.preventDefault();
+    };
+
+    // Koneksi
+    div.querySelector('.port.out').onmousedown = div.querySelector('.port.out').ontouchstart = e => {
+      e.stopPropagation(); connecting = { source: n.id };
+    };
+    div.querySelector('.port.in').onmouseup = div.querySelector('.port.in').ontouchend = e => {
       if (connecting && connecting.source !== n.id) {
         edges = edges.filter(ed => !(ed.source === connecting.source && ed.target === n.id));
         edges.push({ source: connecting.source, target: n.id });
-        connecting = null;
-        render(); saveFlow();
+        connecting = null; render(); saveFlow();
       }
-    });
+    };
 
     return div;
   }
 
-  function renderNodes() {
+  function render() {
     document.querySelectorAll('.node').forEach(el => el.remove());
-    nodes.forEach(n => canvas.appendChild(createNodeElement(n)));
+    nodes.forEach(n => canvas.appendChild(createNode(n)));
+    drawConnections();
   }
 
   function drawConnections() {
     svg.innerHTML = '';
     edges.forEach(e => {
-      const src = nodes.find(x => x.id === e.source);
-      const dst = nodes.find(x => x.id === e.target);
-      if (!src || !dst) return;
-      const x1 = src.x + 127, y1 = src.y + 30;
-      const x2 = dst.x - 7, y2 = dst.y + 30;
-      const ctrl = Math.abs(x2 - x1) * 0.5;
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M${x1},${y1} C${x1 + ctrl},${y1} ${x2 - ctrl},${y2} ${x2},${y2}`);
+      const s = nodes.find(x=>x.id===e.source);
+      const t = nodes.find(x=>x.id===e.target);
+      if (!s || !t) return;
+      const x1 = s.x + 128, y1 = s.y + 30;
+      const x2 = t.x - 8, y2 = t.y + 30;
+      const c = Math.abs(x2 - x1) * 0.5;
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', `M${x1},${y1} C${x1+c},${y1} ${x2-c},${y2} ${x2},${y2}`);
       svg.appendChild(path);
     });
   }
 
-  function render() { renderNodes(); drawConnections(); }
+  // Global drag & connect (mouse + touch)
+  document.onmousemove = document.ontouchmove = e => {
+    if (!dragging) return;
+    const touch = e.touches ? e.touches[0] : e;
+    dragging.node.x = touch.clientX - dragging.ox;
+    dragging.node.y = touch.clientY - dragging.oy;
+    render(); saveFlow();
+  };
 
-  document.addEventListener('mousemove', e => {
-    if (dragging) {
-      dragging.node.x = e.clientX - dragging.offsetX;
-      dragging.node.y = e.clientY - dragging.offsetY;
-      render(); saveFlow();
-    }
-  });
+  document.onmouseup = document.ontouchend = () => {
+    dragging = null; connecting = null;
+  };
 
-  document.addEventListener('mouseup', () => { dragging = null; connecting = null; });
-  document.addEventListener('click', e => { if (!e.target.closest('#contextMenu')) ctxMenu.style.display = 'none'; });
+  document.onclick = e => { if (!e.target.closest('#contextMenu')) ctxMenu.style.display = 'none'; };
 
-  // === FITUR UTAMA ===
+  // === FITUR ===
   function showEditModal(node) {
     editingNode = node;
     document.getElementById('editLabel').value = node.label || '';
@@ -214,19 +219,12 @@
     form.innerHTML = ''; cfg.style.display = 'none';
 
     if (node.type === 'whatsapp') {
-      form.innerHTML = `
-        <input id="waTarget" placeholder="Nomor WA (628...)" value="${node.config.target || ''}">
-        <textarea id="waMessage" rows="4" placeholder="Pesan">${node.config.message || ''}</textarea>
-        <input id="waToken" placeholder="Fonnte Token (opsional)" value="${node.config.token || ''}">
-      `;
+      form.innerHTML = `<input id="waTarget" placeholder="Nomor WA (628...)" value="${node.config.target||''}">
+        <textarea id="waMessage" rows="4" placeholder="Pesan">${node.config.message||''}</textarea>
+        <input id="waToken" placeholder="Fonnte Token (opsional)" value="${node.config.token||''}">`;
     } else if (node.type === 'http') {
-      form.innerHTML = `
-        <input id="httpUrl" placeholder="URL" value="${node.config.url || ''}">
-        <select id="httpMethod">
-          <option value="GET" ${node.config.method==='GET'?'selected':''}>GET</option>
-          <option value="POST" ${node.config.method==='POST'?'selected':''}>POST</option>
-        </select>
-      `;
+      form.innerHTML = `<input id="httpUrl" placeholder="URL" value="${node.config.url||''}">
+        <select id="httpMethod"><option value="GET" ${node.config.method==='GET'?'selected':''}>GET</option><option value="POST" ${node.config.method==='POST'?'selected':''}>POST</option></select>`;
     } else {
       cfg.style.display = 'block';
       cfg.value = JSON.stringify(node.config || {}, null, 2);
@@ -237,39 +235,24 @@
   function saveEdit() {
     if (!editingNode) return;
     editingNode.label = document.getElementById('editLabel').value.trim() || labels[editingNode.type];
-
     if (editingNode.type === 'whatsapp') {
-      editingNode.config = {
-        target: document.getElementById('waTarget').value,
-        message: document.getElementById('waMessage').value,
-        token: document.getElementById('waToken').value
-      };
+      editingNode.config = { target: document.getElementById('waTarget').value, message: document.getElementById('waMessage').value, token: document.getElementById('waToken').value };
     } else if (editingNode.type === 'http') {
       editingNode.config = { url: document.getElementById('httpUrl').value, method: document.getElementById('httpMethod').value };
     } else {
-      try {
-        const raw = document.getElementById('editConfig').value.trim();
-        editingNode.config = raw ? JSON.parse(raw) : {};
-      } catch (e) { alert('JSON config tidak valid!'); return; }
+      try { editingNode.config = document.getElementById('editConfig').value.trim() ? JSON.parse(document.getElementById('editConfig').value) : {}; }
+      catch(e) { alert('JSON tidak valid!'); return; }
     }
-
     closeEdit(); render(); saveFlow();
   }
 
   function closeEdit() { editModal.style.display = 'none'; editingNode = null; }
   function hideContextMenu() { ctxMenu.style.display = 'none'; }
+  function deleteNode(id) { nodes = nodes.filter(n=>n.id!==id); edges = edges.filter(e=>e.source!==id && e.target!==id); hideContextMenu(); render(); saveFlow(); }
 
-  function deleteNode(id) {
-    nodes = nodes.filter(n => n.id !== id);
-    edges = edges.filter(e => e.source !== id && e.target !== id);
-    hideContextMenu(); render(); saveFlow();
-  }
-
-  // <<< TOMBOL RESET YANG SUDAH DIPERBAIKI >>>
   function resetCanvas() {
-    if (confirm('Yakin ingin menghapus SEMUA node dan koneksi?')) {
-      nodes = [];
-      edges = [];
+    if (confirm('Yakin hapus SEMUA node & koneksi?')) {
+      nodes = []; edges = [];
       localStorage.removeItem('nodes');
       localStorage.removeItem('edges');
       render();
@@ -277,45 +260,27 @@
     }
   }
 
-  function saveFlow() {
-    localStorage.setItem('nodes', JSON.stringify(nodes));
-    localStorage.setItem('edges', JSON.stringify(edges));
-  }
-
+  function saveFlow() { localStorage.setItem('nodes', JSON.stringify(nodes)); localStorage.setItem('edges', JSON.stringify(edges)); }
   function loadFlow() { location.reload(); }
 
   function exportFlow() {
-    const flow = nodes.map(n => ({
-      id: n.id, type: n.type, name: n.label, x: n.x, y: n.y, config: n.config || {},
-      wires: [edges.filter(e => e.source === n.id).map(e => e.target)]
-    }));
+    const flow = nodes.map(n=>({id:n.id,type:n.type,name:n.label,x:n.x,y:n.y,config:n.config||{},wires:[edges.filter(e=>e.source===n.id).map(e=>e.target)]}));
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(flow, null, 2)], {type: 'application/json'}));
-    a.download = 'nodeblu-flow.json';
-    a.click();
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(flow,null,2)], {type:'application/json'}));
+    a.download = 'nodeblu-flow.json'; a.click();
   }
 
   async function deployFlow() {
-    if (!confirm('Deploy flow ke server?')) return;
+    if (!confirm('Deploy ke server?')) return;
     try {
-      const res = await fetch('/deploy', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({nodes, edges})
-      });
-      alert(res.ok ? 'Deploy berhasil!' : 'Deploy gagal: ' + await res.text());
-    } catch (e) {
-      alert('Tidak bisa terhubung ke server (offline mode)');
-    }
+      const r = await fetch('/deploy', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nodes,edges})});
+      alert(r.ok ? 'Deploy berhasil!' : 'Gagal: '+await r.text());
+    } catch { alert('Server offline / belum di-deploy'); }
   }
 
   async function triggerNode(id) {
-    try {
-      await fetch('/trigger/' + id, {method: 'POST'});
-      alert('Node di-trigger!');
-    } catch (e) {
-      alert('Trigger hanya jalan kalau server aktif');
-    }
+    try { await fetch('/trigger/'+id,{method:'POST'}); alert('Triggered!'); }
+    catch { alert('Server offline'); }
   }
 
   render();
