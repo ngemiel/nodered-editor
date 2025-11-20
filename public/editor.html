@@ -117,6 +117,7 @@
 
         div.addEventListener('contextmenu',e=>{e.preventDefault();currentNodeId=n.id;ctx.style.left=e.clientX+'px';ctx.style.top=e.clientY+'px';ctx.style.display='block';});
         div.addEventListener('mousedown',e=>{if(e.button!==0||e.target.classList.contains('port'))return;dragging={node:n,offsetX:e.clientX-n.x,offsetY:e.clientY-n.y};});
+        div.addEventListener('touchstart',e=>{if(e.target.classList.contains('port'))return;const t=e.touches[0];dragging={node:n,offsetX:t.clientX-n.x,offsetY:t.clientY-n.y};e.preventDefault();},{passive:false});
         div.querySelector('.port.out').addEventListener('mousedown',e=>{e.stopPropagation();connecting={source:n.id};});
         div.querySelector('.port.in').addEventListener('mouseup',e=>{
           if(connecting&&connecting.source!==n.id){
@@ -131,7 +132,9 @@
 
     function render(){renderNodes();drawConnections();}
     document.addEventListener('mousemove',e=>{if(dragging){dragging.node.x=e.clientX-dragging.offsetX;dragging.node.y=e.clientY-dragging.offsetY;render();saveFlow();}});
+    document.addEventListener('touchmove',e=>{if(dragging){const t=e.touches[0];dragging.node.x=t.clientX-dragging.offsetX;dragging.node.y=t.clientY-dragging.offsetY;render();saveFlow();e.preventDefault();}},{passive:false});
     document.addEventListener('mouseup',()=>{dragging=null;connecting=null;});
+    document.addEventListener('touchend',()=>{dragging=null;connecting=null;});
     document.addEventListener('click',()=>{ctx.style.display='none';});
 
     function saveEdit(){
