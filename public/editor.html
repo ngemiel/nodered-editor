@@ -471,188 +471,202 @@
     <div id="contextMenu">
       <button onclick="deleteNode(currentNodeId)">Delete Node</button>
       <button onclick="hideContextMenu()">Cancel</button>
+    </div>
 
-      <script>
-        let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
-        let edges = JSON.parse(localStorage.getItem('edges') || '[]');
-        let dragging = null, connecting = null, currentNodeId = null, editingNode = null;
-        const canvas = document.getElementById('canvas');
-        const svg = document.querySelector('svg.connections');
-        const ctx = document.getElementById('contextMenu');
-        const editModal = document.getElementById('editModal');
+    <div id="editModal">
+      <div class="modal-content">
+        <h3 style="margin-top:0">Edit Node</h3>
+        <input id="editLabel" placeholder="Label Node">
+        <div id="dynamicForm"></div>
+        <textarea id="editConfig" placeholder="JSON Config" rows="5" style="display:none"></textarea>
+        <div style="display:flex;gap:10px;margin-top:15px">
+          <button onclick="saveEdit()">Simpan</button>
+          <button onclick="closeEdit()" style="background:#d50000">Batal</button>
+        </div>
+      </div>
+    </div>
 
-        const labels = { input: 'Inject', function: 'Function', output: 'Debug', 'mqtt-in': 'MQTT In', 'mqtt-out': 'MQTT Out', http: 'HTTP Req', telegram: 'Telegram', whatsapp: 'WhatsApp' };
+    <script>
+      let nodes = JSON.parse(localStorage.getItem('nodes') || '[]');
+      let edges = JSON.parse(localStorage.getItem('edges') || '[]');
+      let dragging = null, connecting = null, currentNodeId = null, editingNode = null;
+      const canvas = document.getElementById('canvas');
+      const svg = document.querySelector('svg.connections');
+      const ctx = document.getElementById('contextMenu');
+      const editModal = document.getElementById('editModal');
 
-        function addNode(t) {
-          nodes.push({ id: 'n' + Date.now(), type: t, x: 150 + Math.random() * 600, y: 100 + Math.random() * 300, label: labels[t], config: {} });
-          render(); saveFlow();
-        }
+      const labels = { input: 'Inject', function: 'Function', output: 'Debug', 'mqtt-in': 'MQTT In', 'mqtt-out': 'MQTT Out', http: 'HTTP Req', telegram: 'Telegram', whatsapp: 'WhatsApp' };
 
-        function drawConnections() {
-          svg.innerHTML = '';
-          edges.forEach(e => {
-            const s = nodes.find(n => n.id === e.source);
-            const d = nodes.find(n => n.id === e.target);
-            if (!s || !d) return;
-            const x1 = s.x + 106, y1 = s.y + 25, x2 = d.x - 6, y2 = d.y + 25;
-            const c = Math.abs(x2 - x1) * 0.5;
-            const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            p.setAttribute('d', `M${x1},${y1} C${x1 + c},${y1} ${x2 - c},${y2} ${x2},${y2}`);
-            svg.appendChild(p);
-          });
-        }
+      function addNode(t) {
+        nodes.push({ id: 'n' + Date.now(), type: t, x: 150 + Math.random() * 600, y: 100 + Math.random() * 300, label: labels[t], config: {} });
+        render(); saveFlow();
+      }
 
-        function renderNodes() {
-          document.querySelectorAll('.node').forEach(n => n.remove());
-          nodes.forEach(n => {
-            const div = document.createElement('div');
-            div.className = `node ${n.type}`; div.id = n.id; div.innerText = n.label;
-            div.style.left = n.x + 'px'; div.style.top = n.y + 'px';
+      function drawConnections() {
+        svg.innerHTML = '';
+        edges.forEach(e => {
+          const s = nodes.find(n => n.id === e.source);
+          const d = nodes.find(n => n.id === e.target);
+          if (!s || !d) return;
+          const x1 = s.x + 106, y1 = s.y + 25, x2 = d.x - 6, y2 = d.y + 25;
+          const c = Math.abs(x2 - x1) * 0.5;
+          const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          p.setAttribute('d', `M${x1},${y1} C${x1 + c},${y1} ${x2 - c},${y2} ${x2},${y2}`);
+          svg.appendChild(p);
+        });
+      }
 
-            div.addEventListener('dblclick', (e) => { e.stopPropagation(); showEditModal(n); });
+      function renderNodes() {
+        document.querySelectorAll('.node').forEach(n => n.remove());
+        nodes.forEach(n => {
+          const div = document.createElement('div');
+          div.className = `node ${n.type}`; div.id = n.id; div.innerText = n.label;
+          div.style.left = n.x + 'px'; div.style.top = n.y + 'px';
 
-            ['in', 'out'].forEach(p => { const port = document.createElement('div'); port.className = `port ${p}`; div.appendChild(port); });
+          div.addEventListener('dblclick', (e) => { e.stopPropagation(); showEditModal(n); });
 
-            if (n.type === 'input') {
-              const playBtn = document.createElement('button');
-              playBtn.innerText = '▶';
-              playBtn.style.cssText = 'position:absolute;right:5px;top:5px;padding:2px 6px;font-size:10px;background:#4caf50;color:white;border:none;border-radius:4px;cursor:pointer;z-index:10';
-              playBtn.onclick = (e) => { e.stopPropagation(); triggerNode(n.id); };
-              div.appendChild(playBtn);
+          ['in', 'out'].forEach(p => { const port = document.createElement('div'); port.className = `port ${p}`; div.appendChild(port); });
+
+          if (n.type === 'input') {
+            const playBtn = document.createElement('button');
+            playBtn.innerText = '▶';
+            playBtn.style.cssText = 'position:absolute;right:5px;top:5px;padding:2px 6px;font-size:10px;background:#4caf50;color:white;border:none;border-radius:4px;cursor:pointer;z-index:10';
+            playBtn.onclick = (e) => { e.stopPropagation(); triggerNode(n.id); };
+            div.appendChild(playBtn);
+          }
+
+          div.addEventListener('contextmenu', e => { e.preventDefault(); currentNodeId = n.id; ctx.style.left = e.clientX + 'px'; ctx.style.top = e.clientY + 'px'; ctx.style.display = 'block'; });
+          div.addEventListener('mousedown', e => { if (e.button !== 0 || e.target.classList.contains('port')) return; dragging = { node: n, offsetX: e.clientX - n.x, offsetY: e.clientY - n.y }; });
+          div.addEventListener('touchstart', e => { if (e.target.classList.contains('port')) return; const t = e.touches[0]; dragging = { node: n, offsetX: t.clientX - n.x, offsetY: t.clientY - n.y }; e.preventDefault(); }, { passive: false });
+          div.querySelector('.port.out').addEventListener('mousedown', e => { e.stopPropagation(); connecting = { source: n.id }; });
+          div.querySelector('.port.out').addEventListener('touchstart', e => { e.stopPropagation(); connecting = { source: n.id }; e.preventDefault(); }, { passive: false });
+          div.querySelector('.port.in').addEventListener('mouseup', e => {
+            if (connecting && connecting.source !== n.id) {
+              edges = edges.filter(x => !(x.source === connecting.source && x.target === n.id));
+              edges.push({ source: connecting.source, target: n.id });
+              connecting = null; render(); saveFlow();
             }
-
-            div.addEventListener('contextmenu', e => { e.preventDefault(); currentNodeId = n.id; ctx.style.left = e.clientX + 'px'; ctx.style.top = e.clientY + 'px'; ctx.style.display = 'block'; });
-            div.addEventListener('mousedown', e => { if (e.button !== 0 || e.target.classList.contains('port')) return; dragging = { node: n, offsetX: e.clientX - n.x, offsetY: e.clientY - n.y }; });
-            div.addEventListener('touchstart', e => { if (e.target.classList.contains('port')) return; const t = e.touches[0]; dragging = { node: n, offsetX: t.clientX - n.x, offsetY: t.clientY - n.y }; e.preventDefault(); }, { passive: false });
-            div.querySelector('.port.out').addEventListener('mousedown', e => { e.stopPropagation(); connecting = { source: n.id }; });
-            div.querySelector('.port.out').addEventListener('touchstart', e => { e.stopPropagation(); connecting = { source: n.id }; e.preventDefault(); }, { passive: false });
-            div.querySelector('.port.in').addEventListener('mouseup', e => {
-              if (connecting && connecting.source !== n.id) {
-                edges = edges.filter(x => !(x.source === connecting.source && x.target === n.id));
-                edges.push({ source: connecting.source, target: n.id });
-                connecting = null; render(); saveFlow();
-              }
-            });
-            canvas.appendChild(div);
           });
-        }
+          canvas.appendChild(div);
+        });
+      }
 
-        function render() { renderNodes(); drawConnections(); }
+      function render() { renderNodes(); drawConnections(); }
 
-        document.addEventListener('mousemove', e => { if (dragging) { dragging.node.x = e.clientX - dragging.offsetX; dragging.node.y = e.clientY - dragging.offsetY; render(); saveFlow(); } });
-        document.addEventListener('touchmove', e => { if (dragging) { const t = e.touches[0]; dragging.node.x = t.clientX - dragging.offsetX; dragging.node.y = t.clientY - dragging.offsetY; render(); saveFlow(); e.preventDefault(); } }, { passive: false });
-        document.addEventListener('mouseup', () => { dragging = null; connecting = null; });
-        document.addEventListener('touchend', (e) => {
-          if (connecting) {
-            const t = e.changedTouches[0];
-            const el = document.elementFromPoint(t.clientX, t.clientY);
-            if (el && el.classList.contains('port') && el.classList.contains('in')) {
-              const targetId = el.parentElement.id;
-              if (connecting.source !== targetId) {
-                edges = edges.filter(x => !(x.source === connecting.source && x.target === targetId));
-                edges.push({ source: connecting.source, target: targetId });
-                render(); saveFlow();
-              }
+      document.addEventListener('mousemove', e => { if (dragging) { dragging.node.x = e.clientX - dragging.offsetX; dragging.node.y = e.clientY - dragging.offsetY; render(); saveFlow(); } });
+      document.addEventListener('touchmove', e => { if (dragging) { const t = e.touches[0]; dragging.node.x = t.clientX - dragging.offsetX; dragging.node.y = t.clientY - dragging.offsetY; render(); saveFlow(); e.preventDefault(); } }, { passive: false });
+      document.addEventListener('mouseup', () => { dragging = null; connecting = null; });
+      document.addEventListener('touchend', (e) => {
+        if (connecting) {
+          const t = e.changedTouches[0];
+          const el = document.elementFromPoint(t.clientX, t.clientY);
+          if (el && el.classList.contains('port') && el.classList.contains('in')) {
+            const targetId = el.parentElement.id;
+            if (connecting.source !== targetId) {
+              edges = edges.filter(x => !(x.source === connecting.source && x.target === targetId));
+              edges.push({ source: connecting.source, target: targetId });
+              render(); saveFlow();
             }
           }
-          dragging = null; connecting = null;
-        });
-        document.addEventListener('click', () => { ctx.style.display = 'none'; });
+        }
+        dragging = null; connecting = null;
+      });
+      document.addEventListener('click', () => { ctx.style.display = 'none'; });
 
-        function showEditModal(n) {
-          editingNode = n;
-          document.getElementById('editLabel').value = n.label;
-          const container = document.getElementById('dynamicForm');
-          container.innerHTML = '';
+      function showEditModal(n) {
+        editingNode = n;
+        document.getElementById('editLabel').value = n.label;
+        const container = document.getElementById('dynamicForm');
+        container.innerHTML = '';
 
-          if (n.type === 'whatsapp') {
-            container.innerHTML = `
+        if (n.type === 'whatsapp') {
+          container.innerHTML = `
           <input id="waTarget" placeholder="Nomor WA (628...)" value="${n.config.target || '628999587888'}">
           <textarea id="waMessage" placeholder="Pesan" rows="3">${n.config.message || ''}</textarea>
           <input id="waToken" placeholder="Fonnte Token (Optional)" value="${n.config.token || ''}">
           <small style="color:#666">Token diperlukan untuk kirim pesan asli via Fonnte.</small>
         `;
-            document.getElementById('editConfig').style.display = 'none';
-          } else if (n.type === 'http') {
-            container.innerHTML = `
+          document.getElementById('editConfig').style.display = 'none';
+        } else if (n.type === 'http') {
+          container.innerHTML = `
           <input id="httpUrl" placeholder="URL (https://...)" value="${n.config.url || ''}">
           <select id="httpMethod" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ccc;border-radius:6px">
             <option value="GET" ${n.config.method === 'GET' ? 'selected' : ''}>GET</option>
             <option value="POST" ${n.config.method === 'POST' ? 'selected' : ''}>POST</option>
           </select>
         `;
-            document.getElementById('editConfig').style.display = 'none';
-          } else {
-            container.innerHTML = '';
-            document.getElementById('editConfig').style.display = 'block';
-            document.getElementById('editConfig').value = JSON.stringify(n.config || {}, null, 2);
-          }
-
-          editModal.style.display = 'flex';
+          document.getElementById('editConfig').style.display = 'none';
+        } else {
+          container.innerHTML = '';
+          document.getElementById('editConfig').style.display = 'block';
+          document.getElementById('editConfig').value = JSON.stringify(n.config || {}, null, 2);
         }
 
-        function saveEdit() {
-          if (!editingNode) return;
-          editingNode.label = document.getElementById('editLabel').value || editingNode.label;
+        editModal.style.display = 'flex';
+      }
 
-          const config = {};
-          if (editingNode.type === 'whatsapp') {
-            config.target = document.getElementById('waTarget').value;
-            config.message = document.getElementById('waMessage').value;
-            config.token = document.getElementById('waToken').value;
-          } else if (editingNode.type === 'http') {
-            config.url = document.getElementById('httpUrl').value;
-            config.method = document.getElementById('httpMethod').value;
-          } else if (editingNode.type === 'telegram') {
-            // Keep using JSON for telegram for now or add fields if needed
-            try {
-              const raw = document.getElementById('editConfig').value;
-              if (raw) Object.assign(config, JSON.parse(raw));
-            } catch (e) { alert('Config harus JSON valid!'); return; }
-          } else {
-            try {
-              const raw = document.getElementById('editConfig').value;
-              if (raw) Object.assign(config, JSON.parse(raw));
-            } catch (e) { alert('Config harus JSON valid!'); return; }
-          }
+      function saveEdit() {
+        if (!editingNode) return;
+        editingNode.label = document.getElementById('editLabel').value || editingNode.label;
 
-          editingNode.config = config;
-          closeEdit(); render(); saveFlow();
-        }
-
-        function closeEdit() { editModal.style.display = 'none'; editingNode = null; }
-
-        function deleteNode(id) { nodes = nodes.filter(n => n.id !== id); edges = edges.filter(e => e.source !== id && e.target !== id); render(); saveFlow(); }
-        function resetCanvas() { if (confirm('Hapus semua?')) { nodes = []; edges = []; localStorage.clear(); render(); } }
-        function saveFlow() { localStorage.setItem('nodes', JSON.stringify(nodes)); localStorage.setItem('edges', JSON.stringify(edges)); }
-        function loadFlow() { location.reload(); }
-        function exportFlow() {
-          const flow = nodes.map(n => ({ id: n.id, type: n.type, name: n.label, x: n.x, y: n.y, config: n.config || {}, wires: edges.filter(e => e.source === n.id).map(e => [e.target]) }));
-          const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(flow, null, 2)], { type: 'application/json' })); a.download = 'nodeblu-flow.json'; a.click();
-        }
-
-        async function deployFlow() {
-          const flowData = { nodes, edges };
+        const config = {};
+        if (editingNode.type === 'whatsapp') {
+          config.target = document.getElementById('waTarget').value;
+          config.message = document.getElementById('waMessage').value;
+          config.token = document.getElementById('waToken').value;
+        } else if (editingNode.type === 'http') {
+          config.url = document.getElementById('httpUrl').value;
+          config.method = document.getElementById('httpMethod').value;
+        } else if (editingNode.type === 'telegram') {
+          // Keep using JSON for telegram for now or add fields if needed
           try {
-            const res = await fetch('/deploy', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(flowData)
-            });
-            if (res.ok) alert('Flow deployed to server!');
-            else alert('Deploy failed');
-          } catch (e) { alert('Error deploying: ' + e); }
-        }
-
-        async function triggerNode(id) {
+            const raw = document.getElementById('editConfig').value;
+            if (raw) Object.assign(config, JSON.parse(raw));
+          } catch (e) { alert('Config harus JSON valid!'); return; }
+        } else {
           try {
-            await fetch('/trigger/' + id, { method: 'POST' });
-            alert('Node triggered!');
-          } catch (e) { alert('Error triggering node: ' + e); }
+            const raw = document.getElementById('editConfig').value;
+            if (raw) Object.assign(config, JSON.parse(raw));
+          } catch (e) { alert('Config harus JSON valid!'); return; }
         }
 
-        render();
-      </script>
+        editingNode.config = config;
+        closeEdit(); render(); saveFlow();
+      }
+
+      function closeEdit() { editModal.style.display = 'none'; editingNode = null; }
+
+      function deleteNode(id) { nodes = nodes.filter(n => n.id !== id); edges = edges.filter(e => e.source !== id && e.target !== id); render(); saveFlow(); }
+      function resetCanvas() { if (confirm('Hapus semua?')) { nodes = []; edges = []; localStorage.clear(); render(); } }
+      function saveFlow() { localStorage.setItem('nodes', JSON.stringify(nodes)); localStorage.setItem('edges', JSON.stringify(edges)); }
+      function loadFlow() { location.reload(); }
+      function exportFlow() {
+        const flow = nodes.map(n => ({ id: n.id, type: n.type, name: n.label, x: n.x, y: n.y, config: n.config || {}, wires: edges.filter(e => e.source === n.id).map(e => [e.target]) }));
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(flow, null, 2)], { type: 'application/json' })); a.download = 'nodeblu-flow.json'; a.click();
+      }
+
+      async function deployFlow() {
+        const flowData = { nodes, edges };
+        try {
+          const res = await fetch('/deploy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(flowData)
+          });
+          if (res.ok) alert('Flow deployed to server!');
+          else alert('Deploy failed');
+        } catch (e) { alert('Error deploying: ' + e); }
+      }
+
+      async function triggerNode(id) {
+        try {
+          await fetch('/trigger/' + id, { method: 'POST' });
+          alert('Node triggered!');
+        } catch (e) { alert('Error triggering node: ' + e); }
+      }
+
+      render();
+    </script>
   </body>
 
 </html>
