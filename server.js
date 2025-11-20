@@ -51,30 +51,6 @@ async function sendWhatsApp(config, msg) {
     const token = config.token; // User needs to provide Fonnte token or similar
 
     console.log(`[WhatsApp] Sending to ${target}: ${message}`);
-
-    if (!token) {
-        console.log('[WhatsApp] No token provided. Simulation mode.');
-        return;
-    }
-
-    // Example using Fonnte API (common in Indonesia)
-    try {
-        const formData = new FormData();
-        formData.append('target', target);
-        formData.append('message', message);
-
-        const response = await fetch('https://api.fonnte.com/send', {
-            method: 'POST',
-            headers: {
-                'Authorization': token
-            },
-            body: formData
-        });
-        const result = await response.json();
-        console.log('[WhatsApp] API Response:', result);
-    } catch (error) {
-        console.error('[WhatsApp] Failed to send:', error);
-    }
 }
 
 app.listen(3000, () => console.log('Server jalan di http://localhost:3000'));
